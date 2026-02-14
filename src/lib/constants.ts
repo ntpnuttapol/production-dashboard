@@ -1,3 +1,5 @@
+import React from 'react'
+
 // ═══════════════════════════════════════
 // SHARED CONSTANTS - Single source of truth
 // ═══════════════════════════════════════
@@ -61,24 +63,56 @@ export const DEPT_CONFIG = {
   finishing: { label: 'Finishing', color: '#8B5CF6', bg: '#EDE9FE', icon: '🔧' },
 } as const
 
-// --- Shared Styles ---
-export const INPUT_STYLE = {
+// --- Shared Styles (Pixel Art Dark Theme) ---
+export const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
   fontSize: '14px',
-  border: '2px solid #E2E8F0',
-  borderRadius: '8px',
-  background: '#F8FAFC',
+  border: '2px solid #334155',
+  borderRadius: '4px',
+  background: '#0F172A',
+  color: '#F1F5F9',
   outline: 'none',
-} as const
+  boxSizing: 'border-box' as const,
+  fontFamily: "'Noto Sans Thai', sans-serif",
+}
 
-export const LABEL_STYLE = {
-  display: 'block' as const,
-  fontSize: '13px',
-  fontWeight: '600' as const,
-  color: '#475569',
+export const LABEL_STYLE: React.CSSProperties = {
+  display: 'block',
+  fontSize: '12px',
+  fontWeight: '600',
+  color: '#F59E0B',
   marginBottom: '6px',
-} as const
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+}
+
+// --- Pixel Art Shared Styles ---
+export const PIXEL_CARD_STYLE: React.CSSProperties = {
+  background: '#1E293B',
+  border: '3px solid #334155',
+  boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)',
+  padding: '20px',
+}
+
+export const PIXEL_BUTTON_STYLE: React.CSSProperties = {
+  fontWeight: 'bold',
+  border: 'none',
+  cursor: 'pointer',
+  boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+  transition: 'all 0.1s',
+}
+
+export const PIXEL_TABLE_HEADER_STYLE: React.CSSProperties = {
+  background: '#0F172A',
+  borderBottom: '3px solid #334155',
+}
+
+export const PIXEL_TABLE_CELL_STYLE: React.CSSProperties = {
+  padding: '12px 14px',
+  color: '#F1F5F9',
+  borderBottom: '1px solid #334155',
+}
 
 // --- Production Rate Calculations ---
 export function calculateProductionRate(stdQtyPerHour: number): {
@@ -94,8 +128,8 @@ export function calculateProductionRate(stdQtyPerHour: number): {
 }
 
 export function calculateActualRate(
-  completedQty: number, 
-  startTime: string, 
+  completedQty: number,
+  startTime: string,
   endTime: string,
   useCurrentTime?: boolean
 ): {
@@ -143,34 +177,34 @@ export function getEfficiencyStatus(actualRate: number, standardRate: number): {
   percentage: number
 } {
   const percentage = standardRate > 0 ? Math.round((actualRate / standardRate) * 100) : 0
-  
+
   if (percentage >= 110) {
-    return { 
-      status: 'excellent', 
-      color: '#16A34A', 
-      bg: '#DCFCE7', 
-      percentage 
+    return {
+      status: 'excellent',
+      color: '#16A34A',
+      bg: '#DCFCE7',
+      percentage
     }
   } else if (percentage >= 95) {
-    return { 
-      status: 'good', 
-      color: '#10B981', 
-      bg: '#D1FAE5', 
-      percentage 
+    return {
+      status: 'good',
+      color: '#10B981',
+      bg: '#D1FAE5',
+      percentage
     }
   } else if (percentage >= 80) {
-    return { 
-      status: 'normal', 
-      color: '#F59E0B', 
-      bg: '#FEF3C7', 
-      percentage 
+    return {
+      status: 'normal',
+      color: '#F59E0B',
+      bg: '#FEF3C7',
+      percentage
     }
   } else {
-    return { 
-      status: 'slow', 
-      color: '#EF4444', 
-      bg: '#FEE2E2', 
-      percentage 
+    return {
+      status: 'slow',
+      color: '#EF4444',
+      bg: '#FEE2E2',
+      percentage
     }
   }
 }

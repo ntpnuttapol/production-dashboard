@@ -66,11 +66,12 @@ const MODE_CONFIG = {
     completedLabel: 'ผลิตแล้ว (ชิ้น)',
     statusLabels: { running: '🟡 กำลังผลิต', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' },
     gradient: 'linear-gradient(90deg, #F59E0B, #10B981)',
-    planBg: '#FEF3C7',
+    accentColor: '#F59E0B',
+    planBg: '#F59E0B15',
     planBorder: '#F59E0B',
-    planLabelColor: '#B45309',
+    planLabelColor: '#F59E0B',
     completedInputBorder: '#10B981',
-    completedInputBg: '#D1FAE5',
+    completedInputBg: '#10B98120',
     storageBucket: 'production-images',
     filePrefix: '',
   },
@@ -85,11 +86,12 @@ const MODE_CONFIG = {
     completedLabel: 'ประกอบแล้ว (ชิ้น)',
     statusLabels: { running: '🟣 กำลังประกอบ', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' },
     gradient: 'linear-gradient(90deg, #8B5CF6, #6366F1)',
-    planBg: '#EDE9FE',
+    accentColor: '#8B5CF6',
+    planBg: '#8B5CF615',
     planBorder: '#8B5CF6',
-    planLabelColor: '#6D28D9',
+    planLabelColor: '#8B5CF6',
     completedInputBorder: '#8B5CF6',
-    completedInputBg: '#EDE9FE',
+    completedInputBg: '#8B5CF620',
     storageBucket: 'production-images',
     filePrefix: 'finishing-',
   },
@@ -289,16 +291,16 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 'bold', color: '#1E293B' }}>
-        {editData ? '✏️ แก้ไขข้อมูล' : `➕ เพิ่ม${config.title}`}
+    <form onSubmit={handleSubmit} style={{ background: '#1E293B', border: '3px solid #334155', boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '24px' }}>
+      <h2 style={{ margin: '0 0 20px', fontSize: '12px', fontWeight: 'bold', color: config.accentColor, fontFamily: "'Press Start 2P', monospace" }}>
+        {editData ? '✏️ EDIT' : `➕ ${config.title.toUpperCase()}`}
       </h2>
 
-      {error && <div style={{ padding: '12px', background: '#FEE2E2', border: '1px solid #EF4444', borderRadius: '8px', color: '#DC2626', marginBottom: '16px', fontSize: '14px' }}>⚠️ {error}</div>}
+      {error && <div style={{ padding: '12px', background: '#7F1D1D', border: '2px solid #EF4444', color: '#FCA5A5', marginBottom: '16px', fontSize: '14px' }}>⚠️ {error}</div>}
 
       {/* Plan Selector */}
       {plans.length > 0 && !editData && (
-        <div style={{ marginBottom: '20px', padding: '16px', background: config.planBg, borderRadius: '10px', border: `2px solid ${config.planBorder}` }}>
+        <div style={{ marginBottom: '20px', padding: '16px', background: config.planBg, border: `2px solid ${config.planBorder}40` }}>
           <label style={{ ...LABEL_STYLE, color: config.planLabelColor }}>📋 เลือกจากแผนที่วางไว้</label>
           <select value={formData.plan_id || ''} onChange={(e) => handlePlanSelect(e.target.value)} style={{ ...INPUT_STYLE, borderColor: config.planBorder }}>
             <option value="">-- กรอกข้อมูลเอง (ไม่เลือกแผน) --</option>
@@ -360,7 +362,7 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
 
         <div>
           <label style={LABEL_STYLE}>{config.completedLabel} *</label>
-          <input type="number" value={formData.completed_qty} onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, completed_qty: val, status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status })) }} min="0" style={{ ...INPUT_STYLE, borderColor: config.completedInputBorder, background: config.completedInputBg }} required />
+          <input type="number" value={formData.completed_qty} onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, completed_qty: val, status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status })) }} min="0" style={{ ...INPUT_STYLE, borderColor: config.completedInputBorder, background: config.completedInputBg, color: '#F1F5F9' }} required />
         </div>
 
         <div>
@@ -377,11 +379,11 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
           <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input type="radio" name={`shift-${mode}`} value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
-              <span style={{ fontSize: '14px' }}>☀️ กะเช้า</span>
+              <span style={{ fontSize: '14px', color: '#F1F5F9' }}>☀️ กะเช้า</span>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input type="radio" name={`shift-${mode}`} value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
-              <span style={{ fontSize: '14px' }}>🌙 กะกลางคืน</span>
+              <span style={{ fontSize: '14px', color: '#F1F5F9' }}>🌙 กะกลางคืน</span>
             </label>
           </div>
         </div>
@@ -405,11 +407,11 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
       <div style={{ marginTop: '16px' }}>
         <label style={LABEL_STYLE}>รูปภาพงาน</label>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-          <div onClick={() => fileInputRef.current?.click()} style={{ width: '120px', height: '120px', border: '2px dashed #CBD5E1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#F8FAFC', overflow: 'hidden' }}>
+          <div onClick={() => fileInputRef.current?.click()} style={{ width: '120px', height: '120px', border: '2px dashed #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#0F172A', overflow: 'hidden' }}>
             {imagePreview ? (
               <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div style={{ textAlign: 'center', color: '#94A3B8' }}>
+              <div style={{ textAlign: 'center', color: '#64748B' }}>
                 <div style={{ fontSize: '24px' }}>📷</div>
                 <div style={{ fontSize: '11px' }}>คลิกเพื่อเพิ่มรูป</div>
               </div>
@@ -417,14 +419,14 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
           {imagePreview && (
-            <button type="button" onClick={() => { setImagePreview(null); setFormData(prev => ({ ...prev, image_url: '' })) }} style={{ padding: '8px 12px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>❌ ลบรูป</button>
+            <button type="button" onClick={() => { setImagePreview(null); setFormData(prev => ({ ...prev, image_url: '' })) }} style={{ padding: '8px 12px', background: '#7F1D1D', color: '#EF4444', border: '2px solid #EF444440', fontSize: '12px', cursor: 'pointer', boxShadow: '2px 2px 0 0 rgba(0,0,0,0.2)' }}>❌ ลบรูป</button>
           )}
         </div>
       </div>
 
       <div style={{ marginTop: '24px' }}>
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: loading ? '#94A3B8' : config.gradient, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer' }}>
-          {loading ? '⏳ กำลังบันทึก...' : editData ? '💾 บันทึกการแก้ไข' : '✅ บันทึกข้อมูล'}
+        <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: loading ? '#475569' : config.gradient, color: loading ? '#94A3B8' : '#000', border: 'none', fontSize: '14px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'Press Start 2P', monospace", boxShadow: loading ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)' }}>
+          {loading ? '⏳ SAVING...' : editData ? '💾 SAVE' : '✅ SUBMIT'}
         </button>
       </div>
     </form>

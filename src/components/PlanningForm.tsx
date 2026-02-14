@@ -122,12 +122,12 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
   const selectedPart = partNumbers.find(p => p.id === formData.part_number_id)
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 'bold', color: '#1E293B' }}>
-        {editData ? '✏️ แก้ไขแผน' : '➕ เพิ่มแผนการผลิต'}
+    <form onSubmit={handleSubmit} style={{ background: '#1E293B', border: '3px solid #334155', boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '24px' }}>
+      <h2 style={{ margin: '0 0 20px', fontSize: '12px', fontWeight: 'bold', color: '#06B6D4', fontFamily: "'Press Start 2P', monospace" }}>
+        {editData ? '✏️ EDIT PLAN' : '➕ NEW PLAN'}
       </h2>
 
-      {error && <div style={{ padding: '12px', background: '#FEE2E2', border: '1px solid #EF4444', borderRadius: '8px', color: '#DC2626', marginBottom: '16px', fontSize: '14px' }}>⚠️ {error}</div>}
+      {error && <div style={{ padding: '12px', background: '#7F1D1D', border: '2px solid #EF4444', color: '#FCA5A5', marginBottom: '16px', fontSize: '14px' }}>⚠️ {error}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
         {/* Plan Date */}
@@ -140,13 +140,13 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
         <div>
           <label style={LABEL_STYLE}>แผนก *</label>
           <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', background: formData.department === 'production' ? '#FEF3C7' : '#F1F5F9', borderRadius: '8px', border: '2px solid', borderColor: formData.department === 'production' ? '#F59E0B' : '#E2E8F0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', background: formData.department === 'production' ? '#F59E0B20' : 'transparent', border: '2px solid', borderColor: formData.department === 'production' ? '#F59E0B' : '#334155' }}>
               <input type="radio" name="department" value="production" checked={formData.department === 'production'} onChange={() => handleDepartmentChange('production')} style={{ display: 'none' }} />
-              <span style={{ fontSize: '14px' }}>🏭 Production</span>
+              <span style={{ fontSize: '14px', color: formData.department === 'production' ? '#F59E0B' : '#64748B' }}>🏭 Production</span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', background: formData.department === 'finishing' ? '#EDE9FE' : '#F1F5F9', borderRadius: '8px', border: '2px solid', borderColor: formData.department === 'finishing' ? '#8B5CF6' : '#E2E8F0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', background: formData.department === 'finishing' ? '#8B5CF620' : 'transparent', border: '2px solid', borderColor: formData.department === 'finishing' ? '#8B5CF6' : '#334155' }}>
               <input type="radio" name="department" value="finishing" checked={formData.department === 'finishing'} onChange={() => handleDepartmentChange('finishing')} style={{ display: 'none' }} />
-              <span style={{ fontSize: '14px' }}>🔧 Finishing</span>
+              <span style={{ fontSize: '14px', color: formData.department === 'finishing' ? '#8B5CF6' : '#64748B' }}>🔧 Finishing</span>
             </label>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
             ))}
           </select>
           {selectedPart && (
-            <div style={{ marginTop: '8px', padding: '8px 12px', background: '#D1FAE5', borderRadius: '6px', fontSize: '12px', color: '#16A34A' }}>
+            <div style={{ marginTop: '8px', padding: '8px 12px', background: '#10B98120', border: '1px solid #10B98140', fontSize: '12px', color: '#10B981' }}>
               ⚡ Std: <strong>{selectedPart.std_qty}</strong> {selectedPart.unit}/ชม.
             </div>
           )}
@@ -192,11 +192,11 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
           <label style={LABEL_STYLE}>ความสำคัญ *</label>
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { value: 'high', label: '🔴 สูง', bg: '#FEE2E2', border: '#EF4444' },
-              { value: 'medium', label: '🟡 กลาง', bg: '#FEF3C7', border: '#F59E0B' },
-              { value: 'low', label: '🟢 ต่ำ', bg: '#D1FAE5', border: '#10B981' },
+              { value: 'high', label: '🔴 สูง', color: '#EF4444' },
+              { value: 'medium', label: '🟡 กลาง', color: '#F59E0B' },
+              { value: 'low', label: '🟢 ต่ำ', color: '#10B981' },
             ].map(p => (
-              <label key={p.value} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', padding: '10px', background: formData.priority === p.value ? p.bg : '#F8FAFC', borderRadius: '8px', border: '2px solid', borderColor: formData.priority === p.value ? p.border : '#E2E8F0', fontSize: '13px' }}>
+              <label key={p.value} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', padding: '10px', background: formData.priority === p.value ? `${p.color}20` : 'transparent', border: '2px solid', borderColor: formData.priority === p.value ? p.color : '#334155', fontSize: '13px', color: formData.priority === p.value ? p.color : '#64748B' }}>
                 <input type="radio" name="priority" value={p.value} checked={formData.priority === p.value} onChange={() => setFormData(prev => ({ ...prev, priority: p.value as 'high' | 'medium' | 'low' }))} style={{ display: 'none' }} />
                 {p.label}
               </label>
@@ -231,8 +231,8 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
       </div>
 
       <div style={{ marginTop: '24px' }}>
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: loading ? '#94A3B8' : 'linear-gradient(90deg, #0EA5E9, #06B6D4)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer' }}>
-          {loading ? '⏳ กำลังบันทึก...' : editData ? '💾 บันทึกการแก้ไข' : '📋 เพิ่มแผน'}
+        <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: loading ? '#475569' : 'linear-gradient(90deg, #0EA5E9, #06B6D4)', color: loading ? '#94A3B8' : '#000', border: 'none', fontSize: '14px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'Press Start 2P', monospace", boxShadow: loading ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)' }}>
+          {loading ? '⏳ SAVING...' : editData ? '💾 SAVE' : '📋 ADD PLAN'}
         </button>
       </div>
     </form>

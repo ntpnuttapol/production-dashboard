@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import PlanningForm from '@/components/PlanningForm'
 import PlanningTable from '@/components/PlanningTable'
+import Navbar from '@/components/Navbar'
 import { type PlanningEntry } from '@/lib/constants'
 
 export default function PlanningPage() {
@@ -25,10 +25,8 @@ export default function PlanningPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Navigate to Production/Finishing page with plan data pre-selected
   const handleStartProduction = (entry: PlanningEntry) => {
     const targetPage = entry.department === 'production' ? '/production' : '/finishing'
-    // Store plan info in sessionStorage so the target page can pre-fill the form
     sessionStorage.setItem('selectedPlan', JSON.stringify({
       plan_id: entry.id,
       line_id: entry.line_id,
@@ -41,33 +39,61 @@ export default function PlanningPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0C4A6E 0%, #075985 100%)', padding: '20px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '16px 24px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1E293B' }}>📋 วางแผนการผลิต (Planning)</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748B' }}>กำหนดแผนการผลิตและการประกอบ</p>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0C4A6E 0%, #075985 100%)' }}>
+      <Navbar />
+      <div className="pixel-container">
+        {/* Page Title */}
+        <div className="pixel-page-title">
+          <div>
+            <h1 style={{ margin: 0, fontSize: '14px', color: '#06B6D4', fontFamily: "'Press Start 2P', monospace" }}>
+              📋 PLANNING
+            </h1>
+            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B' }}>กำหนดแผนการผลิตและการประกอบ</p>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {!showForm && (
+              <button
+                onClick={() => { setEditData(undefined); setShowForm(true) }}
+                style={{
+                  padding: '10px 18px',
+                  background: 'linear-gradient(90deg, #0EA5E9, #06B6D4)',
+                  color: '#000',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+                }}
+              >
+                ➕ เพิ่มแผนใหม่
+              </button>
+            )}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Link href="/" style={{ padding: '10px 20px', background: '#F1F5F9', color: '#475569', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>← กลับหน้า Dashboard</Link>
-          {!showForm && (
-            <button onClick={() => { setEditData(undefined); setShowForm(true) }} style={{ padding: '10px 20px', background: 'linear-gradient(90deg, #0EA5E9, #06B6D4)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>➕ เพิ่มแผนใหม่</button>
-          )}
-        </div>
+
+        {showForm && (
+          <div style={{ marginBottom: '20px' }}>
+            <PlanningForm onSuccess={handleSuccess} editData={editData} />
+            <button
+              onClick={() => { setShowForm(false); setEditData(undefined) }}
+              style={{
+                marginTop: '12px', padding: '10px 20px', width: '100%',
+                background: '#0F172A', color: '#94A3B8', border: '2px solid #334155',
+                fontSize: '14px', cursor: 'pointer', fontWeight: '600',
+                boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+              }}
+            >
+              ❌ ยกเลิก
+            </button>
+          </div>
+        )}
+
+        <PlanningTable
+          refreshTrigger={refreshTrigger}
+          onEdit={handleEdit}
+          onStartProduction={handleStartProduction}
+        />
       </div>
-
-      {showForm && (
-        <div style={{ marginBottom: '20px' }}>
-          <PlanningForm onSuccess={handleSuccess} editData={editData} />
-          <button onClick={() => { setShowForm(false); setEditData(undefined) }} style={{ marginTop: '12px', padding: '10px 20px', background: '#F1F5F9', color: '#64748B', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', width: '100%' }}>❌ ยกเลิก</button>
-        </div>
-      )}
-
-      <PlanningTable
-        refreshTrigger={refreshTrigger}
-        onEdit={handleEdit}
-        onStartProduction={handleStartProduction}
-      />
     </div>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth-context'
-import { PRODUCTION_LINES, FINISHING_LINES, INPUT_STYLE, LABEL_STYLE } from '@/lib/constants'
+import Navbar from '@/components/Navbar'
+import { PRODUCTION_LINES, FINISHING_LINES, INPUT_STYLE, LABEL_STYLE, PIXEL_CARD_STYLE } from '@/lib/constants'
 
 interface Profile {
   id: string
@@ -18,9 +18,9 @@ interface Profile {
 }
 
 const DEPT_CONFIG = {
-  all: { label: '👑 ทั้งหมด (Admin)', color: '#EF4444', bg: '#FEF2F2' },
-  production: { label: '🏭 Production', color: '#F59E0B', bg: '#FFFBEB' },
-  finishing: { label: '🔧 Finishing', color: '#8B5CF6', bg: '#F5F3FF' },
+  all: { label: '👑 ทั้งหมด', color: '#EF4444' },
+  production: { label: '🏭 Production', color: '#F59E0B' },
+  finishing: { label: '🔧 Finishing', color: '#8B5CF6' },
 }
 
 const ALL_LINES = [...PRODUCTION_LINES, ...FINISHING_LINES]
@@ -38,7 +38,6 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // New user form
   const [newUser, setNewUser] = useState({
     employee_code: '',
     full_name: '',
@@ -53,24 +52,19 @@ export default function AdminPage() {
     role: 'user', department: 'production', allowed_lines: [],
   })
 
-  // Redirect if not admin
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
       router.push('/')
     }
   }, [authLoading, user, isAdmin, router])
 
-  // Fetch all profiles
   const fetchProfiles = async () => {
     setLoading(true)
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: true })
-
-    if (!error && data) {
-      setProfiles(data)
-    }
+    if (!error && data) setProfiles(data)
     setLoading(false)
   }
 
@@ -102,7 +96,6 @@ export default function AdminPage() {
       .eq('id', editingProfile.id)
 
     setSaving(false)
-
     if (error) {
       setMessage({ type: 'error', text: `บันทึกไม่สำเร็จ: ${error.message}` })
     } else {
@@ -168,16 +161,8 @@ export default function AdminPage() {
     })
 
     setSaving(false)
-
-    if (rpcError) {
-      setMessage({ type: 'error', text: `สร้างไม่สำเร็จ: ${rpcError.message}` })
-      return
-    }
-
-    if (data?.error) {
-      setMessage({ type: 'error', text: data.error })
-      return
-    }
+    if (rpcError) { setMessage({ type: 'error', text: `สร้างไม่สำเร็จ: ${rpcError.message}` }); return }
+    if (data?.error) { setMessage({ type: 'error', text: data.error }); return }
 
     setMessage({ type: 'success', text: `สร้างผู้ใช้ ${newUser.employee_code} สำเร็จ!` })
     setShowCreateModal(false)
@@ -188,142 +173,191 @@ export default function AdminPage() {
   if (authLoading || !isAdmin) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F172A' }}>
-        <div style={{ color: '#fff', fontSize: '16px' }}>⏳ กำลังตรวจสอบสิทธิ์...</div>
+        <div style={{ color: '#F59E0B', fontSize: '14px', fontFamily: "'Press Start 2P', monospace" }}>⏳ LOADING...</div>
       </div>
     )
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)', padding: '20px' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: '#fff', padding: '16px 24px', borderRadius: '12px', marginBottom: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold', color: '#DC2626', fontFamily: "'Press Start 2P', monospace" }}>
-            ⚙️ ADMIN PANEL
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748B' }}>จัดการผู้ใช้งานและสิทธิ์การเข้าถึง</p>
-        </div>
-        <Link href="/" style={{ padding: '10px 14px', background: '#1E293B', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: '600' }}>
-          ← กลับ Dashboard
-        </Link>
-      </div>
-
-      {/* Message */}
-      {message && (
-        <div style={{
-          padding: '12px 16px', borderRadius: '8px', marginBottom: '16px',
-          background: message.type === 'success' ? '#ECFDF5' : '#FEF2F2',
-          color: message.type === 'success' ? '#059669' : '#DC2626',
-          border: `1px solid ${message.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
-          fontWeight: '600', fontSize: '14px',
-        }}>
-          {message.type === 'success' ? '✅' : '❌'} {message.text}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
-        {[
-          { label: 'ผู้ใช้ทั้งหมด', value: profiles.length, color: '#3B82F6', bg: '#EFF6FF' },
-          { label: 'Admin', value: profiles.filter(p => p.role === 'admin').length, color: '#EF4444', bg: '#FEF2F2' },
-          { label: 'User', value: profiles.filter(p => p.role === 'user').length, color: '#10B981', bg: '#ECFDF5' },
-        ].map((stat, i) => (
-          <div key={i} style={{ background: stat.bg, border: `2px solid ${stat.color}`, borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 'bold', marginBottom: '6px' }}>{stat.label}</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: stat.color, fontFamily: "'Press Start 2P', monospace" }}>{stat.value}</div>
-          </div>
+  // Reusable line selector component
+  const LineSelector = ({ selectedLines, onToggle, onSelectAll }: {
+    selectedLines: string[]
+    onToggle: (lineId: string) => void
+    onSelectAll: (type: 'production' | 'finishing' | 'all') => void
+  }) => (
+    <div>
+      <label style={LABEL_STYLE}>สายงานที่เข้าถึงได้</label>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+        {['production', 'finishing', 'all'].map(type => (
+          <button key={type} type="button" onClick={() => onSelectAll(type as 'production' | 'finishing' | 'all')} style={{
+            padding: '4px 10px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer',
+            background: 'transparent', border: `2px solid ${type === 'production' ? '#F59E0B' : type === 'finishing' ? '#8B5CF6' : '#EF4444'}`,
+            color: type === 'production' ? '#F59E0B' : type === 'finishing' ? '#8B5CF6' : '#EF4444',
+            boxShadow: '2px 2px 0 0 rgba(0,0,0,0.2)',
+          }}>
+            {type === 'production' ? 'Prod ทั้งหมด' : type === 'finishing' ? 'Fin ทั้งหมด' : 'เลือกทั้งหมด'}
+          </button>
         ))}
       </div>
+      {[
+        { label: '🏭 Production', lines: PRODUCTION_LINES, color: '#F59E0B' },
+        { label: '🔧 Finishing', lines: FINISHING_LINES, color: '#8B5CF6' },
+      ].map(group => (
+        <div key={group.label} style={{ marginBottom: '8px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 'bold', color: group.color, marginBottom: '4px' }}>{group.label}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {group.lines.map(line => {
+              const sel = selectedLines.includes(line.id)
+              return (
+                <button key={line.id} type="button" onClick={() => onToggle(line.id)} style={{
+                  padding: '5px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
+                  background: sel ? group.color : 'transparent',
+                  color: sel ? '#000' : '#64748B',
+                  border: `2px solid ${sel ? group.color : '#334155'}`,
+                  boxShadow: sel ? '2px 2px 0 0 rgba(0,0,0,0.3)' : 'none',
+                }}>
+                  {line.id}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 
-      {/* Users Table */}
-      <div style={{ background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <div style={{ padding: '16px 24px', borderBottom: '2px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1E293B' }}>👥 รายชื่อผู้ใช้งาน</h2>
-          <button onClick={() => { setShowCreateModal(true); setMessage(null); resetNewUser() }} style={{
-            padding: '10px 18px', background: 'linear-gradient(90deg, #10B981, #059669)', color: '#fff',
-            border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer',
-          }}>
-            ➕ เพิ่มผู้ใช้ใหม่
-          </button>
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)' }}>
+      <Navbar />
+      <div className="pixel-container">
+        {/* Page Title */}
+        <div className="pixel-page-title">
+          <div>
+            <h1 style={{ margin: 0, fontSize: '14px', color: '#EF4444', fontFamily: "'Press Start 2P', monospace" }}>
+              ⚙️ ADMIN PANEL
+            </h1>
+            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B' }}>จัดการผู้ใช้งานและสิทธิ์การเข้าถึง</p>
+          </div>
         </div>
 
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>⏳ กำลังโหลด...</div>
-        ) : profiles.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>ไม่พบข้อมูลผู้ใช้</div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>รหัสพนักงาน</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>ชื่อ</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>บทบาท</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>แผนก</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>สายงานที่เข้าถึง</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '700' }}>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.map(profile => {
-                const dept = DEPT_CONFIG[profile.department] || DEPT_CONFIG.production
-                return (
-                  <tr key={profile.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 'bold', fontFamily: 'monospace', color: '#1E293B' }}>{profile.employee_code}</td>
-                    <td style={{ padding: '12px 16px', color: '#1E293B' }}>{profile.full_name}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold',
-                        background: profile.role === 'admin' ? '#FEF2F2' : '#ECFDF5',
-                        color: profile.role === 'admin' ? '#DC2626' : '#059669',
-                      }}>
-                        {profile.role === 'admin' ? '👑 Admin' : '👤 User'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', background: dept.bg, color: dept.color }}>
-                        {dept.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#64748B' }}>
-                      {profile.allowed_lines?.length || 0} สาย
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => handleEdit(profile)}
-                        style={{
-                          padding: '6px 14px', background: '#EFF6FF', color: '#3B82F6', border: '1px solid #BFDBFE',
-                          borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
-                        }}
-                      >
-                        ✏️ แก้ไข
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        {/* Message */}
+        {message && (
+          <div style={{
+            padding: '12px 16px', marginBottom: '16px',
+            background: message.type === 'success' ? '#10B98120' : '#EF444420',
+            color: message.type === 'success' ? '#10B981' : '#EF4444',
+            border: `2px solid ${message.type === 'success' ? '#10B98140' : '#EF444440'}`,
+            fontWeight: '600', fontSize: '14px',
+          }}>
+            {message.type === 'success' ? '✅' : '❌'} {message.text}
+          </div>
         )}
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+          {[
+            { label: 'TOTAL', value: profiles.length, color: '#3B82F6' },
+            { label: 'ADMIN', value: profiles.filter(p => p.role === 'admin').length, color: '#EF4444' },
+            { label: 'USER', value: profiles.filter(p => p.role === 'user').length, color: '#10B981' },
+          ].map((stat, i) => (
+            <div key={i} style={{
+              background: '#0F172A', border: `3px solid ${stat.color}`,
+              boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '16px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 'bold', marginBottom: '6px', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: stat.color, fontFamily: "'Press Start 2P', monospace" }}>{stat.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Users Table */}
+        <div style={PIXEL_CARD_STYLE}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid #334155' }}>
+            <h2 style={{ margin: 0, fontSize: '12px', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace" }}>👥 USERS</h2>
+            <button onClick={() => { setShowCreateModal(true); setMessage(null); resetNewUser() }} style={{
+              padding: '8px 16px', background: 'linear-gradient(90deg, #10B981, #059669)', color: '#000',
+              border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
+              boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+            }}>
+              ➕ เพิ่มผู้ใช้ใหม่
+            </button>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>⏳ กำลังโหลด...</div>
+          ) : profiles.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>ไม่พบข้อมูลผู้ใช้</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="pixel-table">
+                <thead>
+                  <tr>
+                    <th>รหัสพนักงาน</th>
+                    <th>ชื่อ</th>
+                    <th style={{ textAlign: 'center' }}>บทบาท</th>
+                    <th style={{ textAlign: 'center' }}>แผนก</th>
+                    <th style={{ textAlign: 'center' }}>สายงาน</th>
+                    <th style={{ textAlign: 'center' }}>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profiles.map(profile => {
+                    const dept = DEPT_CONFIG[profile.department] || DEPT_CONFIG.production
+                    return (
+                      <tr key={profile.id}>
+                        <td style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#F59E0B' }}>{profile.employee_code}</td>
+                        <td>{profile.full_name}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{
+                            padding: '4px 10px', fontSize: '11px', fontWeight: 'bold',
+                            background: profile.role === 'admin' ? '#EF444420' : '#10B98120',
+                            color: profile.role === 'admin' ? '#EF4444' : '#10B981',
+                            border: `1px solid ${profile.role === 'admin' ? '#EF444440' : '#10B98140'}`,
+                          }}>
+                            {profile.role === 'admin' ? '👑 Admin' : '👤 User'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{
+                            padding: '4px 10px', fontSize: '11px', fontWeight: 'bold',
+                            background: `${dept.color}20`, color: dept.color,
+                            border: `1px solid ${dept.color}40`,
+                          }}>
+                            {dept.label}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
+                          {profile.allowed_lines?.length || 0} สาย
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button onClick={() => handleEdit(profile)} style={{
+                            padding: '5px 12px', background: '#1E3A5F', color: '#3B82F6',
+                            border: '2px solid #3B82F640', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
+                            boxShadow: '2px 2px 0 0 rgba(0,0,0,0.2)',
+                          }}>
+                            ✏️ แก้ไข
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Create User Modal */}
       {showCreateModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '20px' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false) }}
-        >
-          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto', padding: '24px' }}>
+        <div className="pixel-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false) }}>
+          <div className="pixel-modal-content">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#059669' }}>➕ เพิ่มผู้ใช้ใหม่</h2>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#94A3B8' }}>✕</button>
+              <h2 style={{ margin: 0, fontSize: '12px', color: '#10B981', fontFamily: "'Press Start 2P', monospace" }}>➕ NEW USER</h2>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}>✕</button>
             </div>
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
                   <label style={LABEL_STYLE}>🪪 รหัสพนักงาน *</label>
                   <input style={{ ...INPUT_STYLE, textTransform: 'uppercase' }} value={newUser.employee_code} onChange={(e) => setNewUser({ ...newUser, employee_code: e.target.value.toUpperCase() })} placeholder="เช่น PROD001" />
@@ -339,7 +373,7 @@ export default function AdminPage() {
                 <input style={INPUT_STYLE} value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} placeholder="ชื่อเต็ม" />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
                   <label style={LABEL_STYLE}>บทบาท</label>
                   <select style={INPUT_STYLE} value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'user' })}>
@@ -357,37 +391,21 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div>
-                <label style={LABEL_STYLE}>สายงานที่เข้าถึงได้</label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                  <button type="button" onClick={() => selectNewLines('production')} style={{ padding: '4px 10px', background: '#FFFBEB', color: '#F59E0B', border: '1px solid #FCD34D', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Production ทั้งหมด</button>
-                  <button type="button" onClick={() => selectNewLines('finishing')} style={{ padding: '4px 10px', background: '#F5F3FF', color: '#8B5CF6', border: '1px solid #C4B5FD', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Finishing ทั้งหมด</button>
-                  <button type="button" onClick={() => selectNewLines('all')} style={{ padding: '4px 10px', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FECACA', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>เลือกทั้งหมด</button>
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#F59E0B', marginBottom: '4px' }}>🏭 Production</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {PRODUCTION_LINES.map(line => {
-                      const sel = newUser.allowed_lines.includes(line.id)
-                      return <button key={line.id} type="button" onClick={() => toggleNewLine(line.id)} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', background: sel ? '#F59E0B' : '#F8FAFC', color: sel ? '#fff' : '#64748B', border: `2px solid ${sel ? '#F59E0B' : '#E2E8F0'}` }}>{line.id}</button>
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#8B5CF6', marginBottom: '4px' }}>🔧 Finishing</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {FINISHING_LINES.map(line => {
-                      const sel = newUser.allowed_lines.includes(line.id)
-                      return <button key={line.id} type="button" onClick={() => toggleNewLine(line.id)} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', background: sel ? '#8B5CF6' : '#F8FAFC', color: sel ? '#fff' : '#64748B', border: `2px solid ${sel ? '#8B5CF6' : '#E2E8F0'}` }}>{line.id}</button>
-                    })}
-                  </div>
-                </div>
-              </div>
+              <LineSelector selectedLines={newUser.allowed_lines} onToggle={toggleNewLine} onSelectAll={selectNewLines} />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button onClick={() => setShowCreateModal(false)} style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#64748B', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>ยกเลิก</button>
-              <button onClick={handleCreateUser} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? '#94A3B8' : 'linear-gradient(90deg, #10B981, #059669)', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: saving ? 'not-allowed' : 'pointer' }}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button onClick={() => setShowCreateModal(false)} style={{
+                flex: 1, padding: '12px', background: '#0F172A', color: '#94A3B8',
+                border: '2px solid #334155', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer',
+                boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+              }}>ยกเลิก</button>
+              <button onClick={handleCreateUser} disabled={saving} style={{
+                flex: 2, padding: '12px',
+                background: saving ? '#475569' : 'linear-gradient(90deg, #10B981, #059669)',
+                color: saving ? '#94A3B8' : '#000', border: 'none', fontSize: '14px', fontWeight: 'bold',
+                cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+              }}>
                 {saving ? '⏳ กำลังสร้าง...' : '✅ สร้างผู้ใช้'}
               </button>
             </div>
@@ -397,30 +415,22 @@ export default function AdminPage() {
 
       {/* Edit Modal */}
       {showModal && editingProfile && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '20px' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}
-        >
-          <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto', padding: '24px' }}>
+        <div className="pixel-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
+          <div className="pixel-modal-content">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#1E293B' }}>✏️ แก้ไขผู้ใช้: {editingProfile.employee_code}</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#94A3B8' }}>✕</button>
+              <h2 style={{ margin: 0, fontSize: '12px', color: '#3B82F6', fontFamily: "'Press Start 2P', monospace" }}>✏️ EDIT: {editingProfile.employee_code}</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}>✕</button>
             </div>
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-              {/* Full Name */}
+            <div style={{ display: 'grid', gap: '14px' }}>
               <div>
                 <label style={LABEL_STYLE}>ชื่อ-นามสกุล</label>
                 <input style={INPUT_STYLE} value={editingProfile.full_name} onChange={(e) => setEditingProfile({ ...editingProfile, full_name: e.target.value })} />
               </div>
-
-              {/* Employee ID */}
               <div>
                 <label style={LABEL_STYLE}>รหัสพนักงาน</label>
                 <input style={{ ...INPUT_STYLE, textTransform: 'uppercase' }} value={editingProfile.employee_code} onChange={(e) => setEditingProfile({ ...editingProfile, employee_code: e.target.value.toUpperCase() })} />
               </div>
-
-              {/* Role */}
               <div>
                 <label style={LABEL_STYLE}>บทบาท</label>
                 <select style={INPUT_STYLE} value={editingProfile.role} onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value as 'admin' | 'user' })}>
@@ -428,85 +438,29 @@ export default function AdminPage() {
                   <option value="admin">👑 Admin</option>
                 </select>
               </div>
-
-              {/* Department */}
               <div>
                 <label style={LABEL_STYLE}>แผนก</label>
-                <select style={INPUT_STYLE} value={editingProfile.department} onChange={(e) => {
-                  const dept = e.target.value as 'production' | 'finishing' | 'all'
-                  setEditingProfile({ ...editingProfile, department: dept })
-                }}>
+                <select style={INPUT_STYLE} value={editingProfile.department} onChange={(e) => setEditingProfile({ ...editingProfile, department: e.target.value as 'production' | 'finishing' | 'all' })}>
                   <option value="production">🏭 Production</option>
                   <option value="finishing">🔧 Finishing</option>
-                  <option value="all">👑 ทั้งหมด (Admin)</option>
+                  <option value="all">👑 ทั้งหมด</option>
                 </select>
               </div>
 
-              {/* Allowed Lines */}
-              <div>
-                <label style={LABEL_STYLE}>สายงานที่เข้าถึงได้</label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                  <button type="button" onClick={() => selectAllLines('production')} style={{ padding: '4px 10px', background: '#FFFBEB', color: '#F59E0B', border: '1px solid #FCD34D', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    เลือก Production ทั้งหมด
-                  </button>
-                  <button type="button" onClick={() => selectAllLines('finishing')} style={{ padding: '4px 10px', background: '#F5F3FF', color: '#8B5CF6', border: '1px solid #C4B5FD', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    เลือก Finishing ทั้งหมด
-                  </button>
-                  <button type="button" onClick={() => selectAllLines('all')} style={{ padding: '4px 10px', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FECACA', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    เลือกทั้งหมด
-                  </button>
-                </div>
-
-                {/* Production Lines */}
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#F59E0B', marginBottom: '4px' }}>🏭 Production Lines</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {PRODUCTION_LINES.map(line => {
-                      const selected = editingProfile.allowed_lines?.includes(line.id)
-                      return (
-                        <button key={line.id} type="button" onClick={() => toggleLine(line.id)} style={{
-                          padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
-                          background: selected ? '#F59E0B' : '#F8FAFC',
-                          color: selected ? '#fff' : '#64748B',
-                          border: `2px solid ${selected ? '#F59E0B' : '#E2E8F0'}`,
-                        }}>
-                          {line.id}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Finishing Lines */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#8B5CF6', marginBottom: '4px' }}>🔧 Finishing Lines</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {FINISHING_LINES.map(line => {
-                      const selected = editingProfile.allowed_lines?.includes(line.id)
-                      return (
-                        <button key={line.id} type="button" onClick={() => toggleLine(line.id)} style={{
-                          padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
-                          background: selected ? '#8B5CF6' : '#F8FAFC',
-                          color: selected ? '#fff' : '#64748B',
-                          border: `2px solid ${selected ? '#8B5CF6' : '#E2E8F0'}`,
-                        }}>
-                          {line.id}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
+              <LineSelector selectedLines={editingProfile.allowed_lines || []} onToggle={toggleLine} onSelectAll={selectAllLines} />
             </div>
 
-            {/* Save Button */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#64748B', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
-                ยกเลิก
-              </button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button onClick={() => setShowModal(false)} style={{
+                flex: 1, padding: '12px', background: '#0F172A', color: '#94A3B8',
+                border: '2px solid #334155', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer',
+                boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+              }}>ยกเลิก</button>
               <button onClick={handleSave} disabled={saving} style={{
-                flex: 2, padding: '12px', background: saving ? '#94A3B8' : 'linear-gradient(90deg, #3B82F6, #2563EB)', color: '#fff',
-                border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: saving ? 'not-allowed' : 'pointer',
+                flex: 2, padding: '12px',
+                background: saving ? '#475569' : 'linear-gradient(90deg, #3B82F6, #2563EB)',
+                color: '#fff', border: 'none', fontSize: '14px', fontWeight: 'bold',
+                cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
               }}>
                 {saving ? '⏳ กำลังบันทึก...' : '💾 บันทึก'}
               </button>

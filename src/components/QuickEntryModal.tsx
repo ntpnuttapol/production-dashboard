@@ -37,9 +37,9 @@ const MODE_CONFIG = {
     lineLabel: 'สายการผลิต',
     completedLabel: 'ผลิตแล้ว (ชิ้น)',
     statusLabels: { running: '🟡 กำลังผลิต', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' },
-    gradient: 'linear-gradient(135deg, #F59E0B, #D97706)',
+    gradient: 'linear-gradient(90deg, #F59E0B, #10B981)',
     accentColor: '#F59E0B',
-    accentBg: '#FEF3C7',
+    accentBg: '#F59E0B20',
   },
   finishing: {
     lines: FINISHING_LINES,
@@ -49,9 +49,9 @@ const MODE_CONFIG = {
     lineLabel: 'สายประกอบ',
     completedLabel: 'ประกอบแล้ว (ชิ้น)',
     statusLabels: { running: '🟣 กำลังประกอบ', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' },
-    gradient: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+    gradient: 'linear-gradient(90deg, #8B5CF6, #6366F1)',
     accentColor: '#8B5CF6',
-    accentBg: '#EDE9FE',
+    accentBg: '#8B5CF620',
   },
 } as const
 
@@ -221,13 +221,12 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
     >
       <div
         style={{
-          background: '#fff',
-          borderRadius: '16px',
+          background: '#1E293B',
           width: '100%',
           maxWidth: '600px',
           maxHeight: '90vh',
           overflow: 'auto',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+          boxShadow: '8px 8px 0 0 rgba(0,0,0,0.5)',
           border: `3px solid ${config.accentColor}`,
         }}
       >
@@ -235,29 +234,27 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
         <div style={{
           padding: '16px 20px',
           background: config.gradient,
-          color: '#fff',
+          color: '#000',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderRadius: '13px 13px 0 0',
         }}>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
-              {existingEntryId ? '✏️ แก้ไข' : '➕ เพิ่ม'}{config.title}
+            <div style={{ fontSize: '12px', fontWeight: 'bold', fontFamily: "'Press Start 2P', monospace" }}>
+              {existingEntryId ? '✏️ EDIT' : '➕ ADD'}
             </div>
-            <div style={{ fontSize: '12px', opacity: 0.9, marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '4px' }}>
               {lineId} — {getLineName(lineId)}
             </div>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.2)',
+              background: 'rgba(0,0,0,0.2)',
               border: 'none',
-              color: '#fff',
+              color: '#000',
               width: '32px',
               height: '32px',
-              borderRadius: '8px',
               fontSize: '18px',
               cursor: 'pointer',
               display: 'flex',
@@ -277,12 +274,12 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
         ) : (
           <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
             {error && (
-              <div style={{ padding: '10px 14px', background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: '8px', color: '#DC2626', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ padding: '10px 14px', background: '#7F1D1D', border: '2px solid #EF4444', color: '#FCA5A5', marginBottom: '16px', fontSize: '13px' }}>
                 ⚠️ {error}
               </div>
             )}
             {success && (
-              <div style={{ padding: '10px 14px', background: '#D1FAE5', border: '1px solid #A7F3D0', borderRadius: '8px', color: '#059669', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ padding: '10px 14px', background: '#10B98120', border: '2px solid #10B981', color: '#10B981', marginBottom: '16px', fontSize: '13px' }}>
                 ✅ บันทึกสำเร็จ!
               </div>
             )}
@@ -381,7 +378,7 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                   value={formData.completed_qty}
                   onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, completed_qty: val, status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status })) }}
                   min="0"
-                  style={{ ...INPUT_STYLE, borderColor: config.accentColor, background: config.accentBg, fontWeight: 'bold', fontSize: '16px' }}
+                  style={{ ...INPUT_STYLE, borderColor: config.accentColor, background: config.accentBg, fontWeight: 'bold', fontSize: '16px', color: '#F1F5F9' }}
                   required
                 />
               </div>
@@ -390,11 +387,11 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
               <div>
                 <label style={LABEL_STYLE}>กะ</label>
                 <div style={{ display: 'flex', gap: '12px', paddingTop: '6px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#F1F5F9' }}>
                     <input type="radio" name="modal-shift" value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
                     ☀️ เช้า
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#F1F5F9' }}>
                     <input type="radio" name="modal-shift" value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
                     🌙 กลางคืน
                   </label>
@@ -445,10 +442,9 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                 style={{
                   flex: 1,
                   padding: '12px',
-                  background: '#F1F5F9',
-                  color: '#475569',
-                  border: '2px solid #E2E8F0',
-                  borderRadius: '8px',
+                  background: 'transparent',
+                  color: '#94A3B8',
+                  border: '2px solid #334155',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
@@ -462,16 +458,17 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                 style={{
                   flex: 2,
                   padding: '12px',
-                  background: loading || success ? '#94A3B8' : config.gradient,
-                  color: '#fff',
+                  background: loading || success ? '#475569' : config.gradient,
+                  color: loading || success ? '#94A3B8' : '#000',
                   border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: 'bold',
                   cursor: loading || success ? 'not-allowed' : 'pointer',
+                  fontFamily: "'Press Start 2P', monospace",
+                  boxShadow: loading || success ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)',
                 }}
               >
-                {loading ? '⏳ กำลังบันทึก...' : success ? '✅ สำเร็จ!' : existingEntryId ? '💾 บันทึกการแก้ไข' : '✅ บันทึกข้อมูล'}
+                {loading ? '⏳ SAVING...' : success ? '✅ DONE!' : existingEntryId ? '💾 SAVE' : '✅ SUBMIT'}
               </button>
             </div>
           </form>
