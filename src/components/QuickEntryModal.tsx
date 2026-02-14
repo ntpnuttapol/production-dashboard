@@ -366,7 +366,7 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                 <input
                   type="number"
                   value={formData.target_qty}
-                  onChange={(e) => setFormData(prev => ({ ...prev, target_qty: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, target_qty: val, status: prev.completed_qty >= val && val > 0 ? 'completed' : prev.status === 'completed' && prev.completed_qty < val ? 'running' : prev.status })) }}
                   min="0"
                   style={INPUT_STYLE}
                   required
@@ -379,7 +379,7 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                 <input
                   type="number"
                   value={formData.completed_qty}
-                  onChange={(e) => setFormData(prev => ({ ...prev, completed_qty: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, completed_qty: val, status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status })) }}
                   min="0"
                   style={{ ...INPUT_STYLE, borderColor: config.accentColor, background: config.accentBg, fontWeight: 'bold', fontSize: '16px' }}
                   required

@@ -1,33 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [employeeId, setEmployeeId] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
+  const { login } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { error } = await login(employeeId.trim().toUpperCase(), password)
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error)
+        setLoading(false)
+      } else {
+        router.push('/')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
       setLoading(false)
-    } else {
-      router.push('/')
-      router.refresh()
     }
   }
 
@@ -115,7 +117,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <form onSubmit={handleLogin}>
-          {/* Email Field */}
+          {/* Employee ID Field */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{
               display: 'block',
@@ -124,7 +126,7 @@ export default function LoginPage() {
               color: '#374151',
               marginBottom: '8px',
             }}>
-              อีเมล
+              รหัสพนักงาน
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -134,14 +136,15 @@ export default function LoginPage() {
                 transform: 'translateY(-50%)',
                 fontSize: '18px',
               }}>
-                📧
+                🪪
               </span>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                type="text"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                placeholder="เช่น PROD001"
                 required
+                autoCapitalize="characters"
                 style={{
                   width: '100%',
                   padding: '14px 14px 14px 44px',
@@ -151,6 +154,7 @@ export default function LoginPage() {
                   outline: 'none',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                   boxSizing: 'border-box',
+                  textTransform: 'uppercase',
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#667eea'

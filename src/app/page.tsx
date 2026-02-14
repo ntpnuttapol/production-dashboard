@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PixelDinosaur from '@/components/PixelDinosaur'
 import QuickEntryModal from '@/components/QuickEntryModal'
+import { useAuth } from '@/lib/auth-context'
 import {
   PRODUCTION_LINES,
   FINISHING_LINES,
@@ -419,11 +421,29 @@ export default function Dashboard() {
     fetchData()
   }
 
-  const running = lines.filter(l => l.status === 'running').length
-  const completed = lines.filter(l => l.status === 'completed').length
-  const totalOutput = lines.reduce((s, l) => s + l.current, 0)
-  const totalTarget = lines.reduce((s, l) => s + l.target, 0)
+  const { user, loading: authLoading, logout, canAccessLine, isAdmin } = useAuth()
+  const routerNav = useRouter()
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      routerNav.push('/login')
+    }
+  }, [authLoading, user, routerNav])
+
+  // Filter lines based on user permissions
+  const visibleLines = user ? lines.filter(l => canAccessLine(l.id)) : lines
+
+  const running = visibleLines.filter(l => l.status === 'running').length
+  const completed = visibleLines.filter(l => l.status === 'completed').length
+  const totalOutput = visibleLines.reduce((s, l) => s + l.current, 0)
+  const totalTarget = visibleLines.reduce((s, l) => s + l.target, 0)
   const rate = totalTarget > 0 ? Math.round((totalOutput / totalTarget) * 100) : 0
+
+  const handleLogout = async () => {
+    await logout()
+    routerNav.push('/login')
+  }
 
   return (
     <div style={{ 
@@ -463,6 +483,19 @@ export default function Dashboard() {
           <Link href="/finishing" style={{ padding: '10px 14px', background: 'linear-gradient(90deg, #8B5CF6, #6366F1)', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: '600' }}>🔧 Finish</Link>
           <Link href="/planning" style={{ padding: '10px 14px', background: 'linear-gradient(90deg, #0EA5E9, #06B6D4)', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: '600' }}>📋 Plan</Link>
           <Link href="/parts" style={{ padding: '10px 14px', background: 'linear-gradient(90deg, #22C55E, #16A34A)', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: '600' }}>📦 Parts</Link>
+          {isAdmin && <Link href="/admin" style={{ padding: '10px 14px', background: 'linear-gradient(90deg, #EF4444, #DC2626)', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: '600' }}>⚙️ Admin</Link>}
+          {user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1E293B' }}>{user.fullName}</div>
+                <div style={{ fontSize: '10px', color: '#64748B' }}>
+                  {user.role === 'admin' ? '👑 Admin' : user.department === 'production' ? '🏭 Production' : '🔧 Finishing'}
+                  {' · '}{user.employeeId}
+                </div>
+              </div>
+              <button onClick={handleLogout} style={{ padding: '6px 10px', background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🚪</button>
+            </div>
+          )}
           <div style={{ textAlign: 'right', marginLeft: '8px' }}>
             <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1E293B', fontFamily: "'Press Start 2P', monospace" }}>
               {formattedTime}
@@ -492,7 +525,7 @@ export default function Dashboard() {
 
       {/* Cards Grid */ }
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-        {lines.map((line) => (
+        {visibleLines.map((line) => (
           <Card key={`${line.type}-${line.id}`} line={line} onEdit={handleEdit} />
         ))}
       </div>
