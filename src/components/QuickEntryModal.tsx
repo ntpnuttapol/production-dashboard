@@ -284,9 +284,9 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            <div className="modal-form-grid">
               {/* Part Number */}
-              <div style={{ gridColumn: 'span 2' }}>
+              <div className="modal-form-full">
                 <label style={LABEL_STYLE}>📦 Part Number</label>
                 <select
                   value={formData.part_number_id || ''}
@@ -422,7 +422,7 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
               </div>
 
               {/* Remarks */}
-              <div style={{ gridColumn: 'span 2' }}>
+              <div className="modal-form-full">
                 <label style={LABEL_STYLE}>📝 หมายเหตุ</label>
                 <input
                   type="text"

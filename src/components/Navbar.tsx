@@ -9,6 +9,7 @@ const NAV_ITEMS = [
     { href: '/', label: 'Dashboard', icon: '🖥️', color: '#F59E0B' },
     { href: '/production', label: 'Produce', icon: '📝', color: '#F59E0B' },
     { href: '/finishing', label: 'Finish', icon: '🔧', color: '#8B5CF6' },
+    { href: '/analytics', label: 'Analytics', icon: '📊', color: '#3B82F6' },
     { href: '/planning', label: 'Plan', icon: '📋', color: '#06B6D4' },
     { href: '/parts', label: 'Parts', icon: '📦', color: '#22C55E' },
 ]
@@ -111,18 +112,22 @@ export default function Navbar() {
                                 <button
                                     onClick={handleLogout}
                                     style={{
-                                        padding: '6px 10px',
+                                        padding: '6px 12px',
                                         background: '#1C1917',
                                         color: '#EF4444',
                                         border: '2px solid #7F1D1D',
                                         borderRadius: '4px',
-                                        fontSize: '14px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
                                         cursor: 'pointer',
                                         boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
                                     }}
                                     title="Logout"
                                 >
-                                    🚪
+                                    🚪 ออกระบบ
                                 </button>
                             </div>
                         )}

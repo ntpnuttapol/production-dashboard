@@ -235,6 +235,18 @@ canvas {
   }
 }
 
+.pixel-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (min-width: 768px) {
+  .pixel-charts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .pixel-cards-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -268,4 +280,19 @@ canvas {
   overflow: auto;
   padding: 24px;
   border-radius: 4px;
+}
+
+/* Modal form responsive grid */
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .modal-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.modal-form-full {
+  grid-column: 1 / -1;
 }
