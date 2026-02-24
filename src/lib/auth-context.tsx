@@ -55,9 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (employeeCode: string, password: string): Promise<{ error: string | null }> => {
     try {
+      const normalizedEmployeeCode = employeeCode.trim().toUpperCase()
+      if (!normalizedEmployeeCode) {
+        return { error: 'กรุณากรอกรหัสพนักงาน' }
+      }
+
       // Call RPC function to verify password
       const { data, error: rpcError } = await supabase.rpc('login_app_user', {
-        p_employee_code: employeeCode,
+        p_employee_code: normalizedEmployeeCode,
         p_password: password,
       })
 

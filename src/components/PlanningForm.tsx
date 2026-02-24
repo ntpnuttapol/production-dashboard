@@ -27,9 +27,10 @@ interface PlanningFormData {
 interface PlanningFormProps {
   onSuccess?: () => void
   editData?: PlanningFormData & { id: string }
+  defaultDepartment?: 'production' | 'finishing'
 }
 
-export default function PlanningForm({ onSuccess, editData }: PlanningFormProps) {
+export default function PlanningForm({ onSuccess, editData, defaultDepartment }: PlanningFormProps) {
   const supabase = createClient()
   const today = new Date().toISOString().split('T')[0]
 
@@ -37,10 +38,13 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
   const [error, setError] = useState<string | null>(null)
   const [partNumbers, setPartNumbers] = useState<PartNumber[]>([])
 
+  const initialDept = editData?.department || defaultDepartment || 'production'
+  const initialLine = initialDept === 'finishing' ? 'FINISH-01' : 'LINE-01'
+
   const [formData, setFormData] = useState<PlanningFormData>({
     plan_date: editData?.plan_date || today,
-    department: editData?.department || 'production',
-    line_id: editData?.line_id || 'LINE-01',
+    department: initialDept,
+    line_id: editData?.line_id || initialLine,
     part_number_id: editData?.part_number_id || null,
     product_name: editData?.product_name || '',
     lot_number: editData?.lot_number || '',
@@ -50,6 +54,13 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
     created_by: editData?.created_by || '',
     status: editData?.status || 'pending',
   })
+
+  // Reset form when defaultDepartment changes (new plan only)
+  useEffect(() => {
+    if (editData || !defaultDepartment) return
+    const newLine = defaultDepartment === 'finishing' ? 'FINISH-01' : 'LINE-01'
+    setFormData(prev => ({ ...prev, department: defaultDepartment, line_id: newLine }))
+  }, [defaultDepartment, editData])
 
   // Fetch Part Numbers
   useEffect(() => {
@@ -138,16 +149,17 @@ export default function PlanningForm({ onSuccess, editData }: PlanningFormProps)
 
         {/* Department */}
         <div>
-          <label style={LABEL_STYLE}>แผนก *</label>
-          <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', background: formData.department === 'production' ? '#F59E0B20' : 'transparent', border: '2px solid', borderColor: formData.department === 'production' ? '#F59E0B' : '#334155' }}>
-              <input type="radio" name="department" value="production" checked={formData.department === 'production'} onChange={() => handleDepartmentChange('production')} style={{ display: 'none' }} />
-              <span style={{ fontSize: '14px', color: formData.department === 'production' ? '#F59E0B' : '#64748B' }}>🏭 Production</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', background: formData.department === 'finishing' ? '#8B5CF620' : 'transparent', border: '2px solid', borderColor: formData.department === 'finishing' ? '#8B5CF6' : '#334155' }}>
-              <input type="radio" name="department" value="finishing" checked={formData.department === 'finishing'} onChange={() => handleDepartmentChange('finishing')} style={{ display: 'none' }} />
-              <span style={{ fontSize: '14px', color: formData.department === 'finishing' ? '#8B5CF6' : '#64748B' }}>🔧 Finishing</span>
-            </label>
+          <label style={LABEL_STYLE}>แผนก</label>
+          <div style={{
+            padding: '10px 16px',
+            background: formData.department === 'production' ? '#F59E0B20' : '#8B5CF620',
+            border: `2px solid ${formData.department === 'production' ? '#F59E0B' : '#8B5CF6'}`,
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            <span style={{ fontSize: '18px' }}>{formData.department === 'production' ? '🏭' : '🔧'}</span>
+            <span style={{ fontWeight: 'bold', color: formData.department === 'production' ? '#F59E0B' : '#8B5CF6', fontSize: '14px' }}>
+              {formData.department === 'production' ? 'Production' : 'Finishing'}
+            </span>
           </div>
         </div>
 

@@ -18,7 +18,11 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      await login(employeeId, password)
+      const result = await login(employeeId, password)
+      if (result.error) {
+        setError(result.error)
+        return
+      }
       router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'เข้าสู่ระบบล้มเหลว')

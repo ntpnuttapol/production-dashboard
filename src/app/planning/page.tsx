@@ -12,6 +12,7 @@ export default function PlanningPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [editData, setEditData] = useState<PlanningEntry | undefined>(undefined)
   const [showForm, setShowForm] = useState(false)
+  const [selectedDept, setSelectedDept] = useState<'production' | 'finishing' | undefined>(undefined)
 
   const handleSuccess = () => {
     setRefreshTrigger(prev => prev + 1)
@@ -21,6 +22,14 @@ export default function PlanningPage() {
 
   const handleEdit = (entry: PlanningEntry) => {
     setEditData(entry)
+    setSelectedDept(entry.department)
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const openNewPlan = (dept: 'production' | 'finishing') => {
+    setEditData(undefined)
+    setSelectedDept(dept)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -52,30 +61,47 @@ export default function PlanningPage() {
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             {!showForm && (
-              <button
-                onClick={() => { setEditData(undefined); setShowForm(true) }}
-                style={{
-                  padding: '10px 18px',
-                  background: 'linear-gradient(90deg, #0EA5E9, #06B6D4)',
-                  color: '#000',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
-                }}
-              >
-                ➕ เพิ่มแผนใหม่
-              </button>
+              <>
+                <button
+                  onClick={() => openNewPlan('production')}
+                  style={{
+                    padding: '10px 18px',
+                    background: 'linear-gradient(90deg, #D97706, #F59E0B)',
+                    color: '#000',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+                  }}
+                >
+                  ➕ 🏭 Production
+                </button>
+                <button
+                  onClick={() => openNewPlan('finishing')}
+                  style={{
+                    padding: '10px 18px',
+                    background: 'linear-gradient(90deg, #7C3AED, #8B5CF6)',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+                  }}
+                >
+                  ➕ 🔧 Finishing
+                </button>
+              </>
             )}
           </div>
         </div>
 
         {showForm && (
           <div style={{ marginBottom: '20px' }}>
-            <PlanningForm onSuccess={handleSuccess} editData={editData} />
+            <PlanningForm onSuccess={handleSuccess} editData={editData} defaultDepartment={selectedDept} />
             <button
-              onClick={() => { setShowForm(false); setEditData(undefined) }}
+              onClick={() => { setShowForm(false); setEditData(undefined); setSelectedDept(undefined) }}
               style={{
                 marginTop: '12px', padding: '10px 20px', width: '100%',
                 background: '#0F172A', color: '#94A3B8', border: '2px solid #334155',
