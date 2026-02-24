@@ -47,7 +47,7 @@ export default function PlanningForm({ onSuccess, editData, defaultDepartment }:
     line_id: editData?.line_id || initialLine,
     part_number_id: editData?.part_number_id || null,
     product_name: editData?.product_name || '',
-    lot_number: editData?.lot_number || '',
+    lot_number: '',
     target_qty: editData?.target_qty || 0,
     priority: editData?.priority || 'medium',
     notes: editData?.notes || '',
@@ -185,12 +185,6 @@ export default function PlanningForm({ onSuccess, editData, defaultDepartment }:
           <select value={formData.line_id} onChange={(e) => setFormData(prev => ({ ...prev, line_id: e.target.value }))} style={INPUT_STYLE} required>
             {lineOptions.map(line => <option key={line.id} value={line.id}>{line.id} - {line.name}</option>)}
           </select>
-        </div>
-
-        {/* Lot Number */}
-        <div>
-          <label style={LABEL_STYLE}>หมายเลขล็อต *</label>
-          <input type="text" value={formData.lot_number} onChange={(e) => setFormData(prev => ({ ...prev, lot_number: e.target.value }))} placeholder="LOT-2024-001" style={INPUT_STYLE} required />
         </div>
 
         {/* Target Qty */}
