@@ -7,12 +7,11 @@ import Navbar from '@/components/Navbar'
 import { PixelBarChart, PixelDeptChart, PixelEfficiencyBoard } from '@/components/PixelCharts'
 import { useAuth } from '@/lib/auth-context'
 import {
-  PRODUCTION_LINES,
-  FINISHING_LINES,
   calculateActualRate,
   getEfficiencyStatus,
   type WorkEntry,
 } from '@/lib/constants'
+import { useLines } from '@/lib/lines-context'
 
 interface ChartLine {
   id: string
@@ -27,6 +26,7 @@ export default function AnalyticsPage() {
   const supabase = createClient()
   const router = useRouter()
   const { user, loading: authLoading, canAccessLine } = useAuth()
+  const { productionLines, finishingLines } = useLines()
   const [lines, setLines] = useState<ChartLine[]>([])
   const [time, setTime] = useState<Date | null>(null)
 
@@ -67,11 +67,11 @@ export default function AnalyticsPage() {
     }
 
     const mapped: ChartLine[] = []
-    PRODUCTION_LINES.forEach(l => {
+    productionLines.forEach(l => {
       const entry = (prodData as WorkEntry[] | null)?.find(d => d.line_id === l.id)
       mapped.push(buildLine(l, 'production', entry))
     })
-    FINISHING_LINES.forEach(l => {
+    finishingLines.forEach(l => {
       const entry = (finishData as WorkEntry[] | null)?.find(d => d.line_id === l.id)
       mapped.push(buildLine(l, 'finishing', entry))
     })
@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
     const t = setInterval(fetchData, 5000)
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [productionLines, finishingLines])
 
   const visibleLines = user ? lines.filter(l => canAccessLine(l.id)) : lines
 
@@ -101,50 +101,50 @@ export default function AnalyticsPage() {
     .sort((a, b) => b.pct - a.pct)
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
       <Navbar />
 
-      <div className="pixel-container">
+      <div className="cartoon-container">
         {/* Header */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginBottom: '20px', paddingBottom: '16px', borderBottom: '3px solid #1E3A5F',
+          marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)',
         }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#3B82F6', fontFamily: "'Press Start 2P', monospace" }}>
+            <h2 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-blue)' }}>
               📊 ANALYTICS
             </h2>
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B' }}>
+            <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
               {formattedDate}
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#F1F5F9', fontFamily: "'Press Start 2P', monospace" }}>
+            <div className="cartoon-font" style={{ fontSize: '28px', color: 'var(--color-text-primary)' }}>
               {formattedTime}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
-              <span style={{ width: '10px', height: '10px', background: '#3B82F6', borderRadius: '50%', animation: 'pulse 1s infinite', display: 'inline-block' }} />
-              <span style={{ fontSize: '10px', color: '#3B82F6', fontWeight: 'bold', fontFamily: "'Press Start 2P', monospace" }}>LIVE</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <span style={{ width: '12px', height: '12px', background: 'var(--color-blue)', borderRadius: '50%', animation: 'pulse 1.5s infinite', display: 'inline-block', boxShadow: '0 0 8px var(--color-blue)' }} />
+              <span style={{ fontSize: '12px', color: 'var(--color-blue)', fontWeight: 'bold', fontFamily: "'Nunito', sans-serif" }}>LIVE</span>
             </div>
           </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="pixel-stats-grid" style={{ marginBottom: '20px' }}>
+        <div className="cartoon-stats-grid" style={{ marginBottom: '24px' }}>
           {[
-            { icon: '📦', label: 'TOTAL OUTPUT', value: totalOutput.toLocaleString(), color: '#3B82F6' },
-            { icon: '🎯', label: 'TOTAL TARGET', value: totalTarget.toLocaleString(), color: '#8B5CF6' },
-            { icon: '📊', label: 'OVERALL', value: `${overallRate}%`, color: overallRate >= 80 ? '#10B981' : '#F59E0B' },
-            { icon: '⚡', label: 'ACTIVE', value: `${activeLines}/${visibleLines.length}`, color: '#06B6D4' },
+            { icon: '📦', label: 'TOTAL OUTPUT', value: totalOutput.toLocaleString(), color: 'var(--color-blue)' },
+            { icon: '🎯', label: 'TOTAL TARGET', value: totalTarget.toLocaleString(), color: 'var(--color-purple)' },
+            { icon: '📊', label: 'OVERALL', value: `${overallRate}%`, color: overallRate >= 80 ? 'var(--color-green)' : 'var(--color-running)' },
+            { icon: '⚡', label: 'ACTIVE', value: `${activeLines}/${visibleLines.length}`, color: 'var(--color-cyan)' },
           ].map((stat, i) => (
-            <div key={i} style={{
-              background: '#0F172A', border: `3px solid ${stat.color}`,
-              boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '16px', textAlign: 'center',
+            <div key={i} className="cartoon-card" style={{
+              border: `2px solid ${stat.color}40`,
+              padding: '20px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 'bold', marginBottom: '8px', fontFamily: "'Press Start 2P', monospace" }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'bold', marginBottom: '12px', fontFamily: "'Nunito', sans-serif" }}>
                 {stat.icon} {stat.label}
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: stat.color, fontFamily: "'Press Start 2P', monospace" }}>
+              <div className="cartoon-font" style={{ fontSize: '28px', color: stat.color }}>
                 {stat.value}
               </div>
             </div>
@@ -152,72 +152,70 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Charts Row 1: Bar + Dept */}
-        <div className="pixel-charts-grid">
+        <div className="cartoon-charts-grid">
           <PixelBarChart lines={visibleLines} />
           <PixelDeptChart lines={visibleLines} />
         </div>
 
         {/* Efficiency Board */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '24px' }}>
           <PixelEfficiencyBoard lines={visibleLines} />
         </div>
 
         {/* Ranking Table */}
-        <div style={{
-          background: '#1E293B', border: '3px solid #334155',
-          boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '20px', marginBottom: '20px',
-        }}>
-          <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace", marginBottom: '16px' }}>
+        <div className="cartoon-card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div className="cartoon-font" style={{ fontSize: '16px', color: 'var(--color-running)', marginBottom: '20px' }}>
             🏆 LINE RANKING
           </div>
 
           {ranked.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: '#475569', fontSize: '10px', fontFamily: "'Press Start 2P', monospace" }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 600 }}>
               NO DATA TODAY
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {ranked.map((line, idx) => {
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`
-                const pctColor = line.pct >= 100 ? '#10B981' : line.pct >= 80 ? '#3B82F6' : line.pct >= 50 ? '#F59E0B' : '#EF4444'
-                const typeColor = line.type === 'production' ? '#F59E0B' : '#8B5CF6'
+                const pctColor = line.pct >= 100 ? 'var(--color-green)' : line.pct >= 80 ? 'var(--color-blue)' : line.pct >= 50 ? 'var(--color-running)' : 'var(--color-red)'
+                const typeColor = line.type === 'production' ? 'var(--color-running)' : 'var(--color-purple)'
 
                 return (
                   <div key={line.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '10px 14px', background: idx < 3 ? '#0F172A' : 'transparent',
-                    border: idx < 3 ? `2px solid ${pctColor}33` : '1px solid #334155',
+                    display: 'flex', alignItems: 'center', gap: '16px',
+                    padding: '12px 16px', background: idx < 3 ? 'var(--color-bg-primary)' : 'transparent',
+                    border: idx < 3 ? `2px solid ${pctColor}33` : '1px solid var(--color-border)',
+                    borderRadius: '16px'
                   }}>
                     {/* Rank */}
-                    <div style={{ width: '36px', textAlign: 'center', fontSize: idx < 3 ? '18px' : '12px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                    <div style={{ width: '40px', textAlign: 'center', fontSize: idx < 3 ? '24px' : '15px', color: 'var(--color-text-secondary)', fontWeight: 800 }}>
                       {medal}
                     </div>
 
                     {/* Line info */}
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '9px', color: typeColor, fontFamily: "'Press Start 2P', monospace" }}>{line.id}</span>
-                        <span style={{ fontSize: '12px', color: '#F1F5F9', fontWeight: '600' }}>{line.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span className="cartoon-badge" style={{ background: typeColor + '20', color: typeColor, fontSize: '11px' }}>{line.id}</span>
+                        <span style={{ fontSize: '15px', color: 'var(--color-text-primary)', fontWeight: '700' }}>{line.name}</span>
                       </div>
                     </div>
 
                     {/* Progress bar */}
-                    <div style={{ width: '120px' }}>
-                      <div style={{ height: '10px', background: '#0F172A', border: '1px solid #334155' }}>
+                    <div style={{ width: '140px', display: 'flex', alignItems: 'center' }}>
+                      <div style={{ height: '12px', background: 'var(--color-bg-input)', border: '1px solid var(--color-border)', borderRadius: '6px', width: '100%', overflow: 'hidden' }}>
                         <div style={{
                           height: '100%', width: `${Math.min(line.pct, 100)}%`, background: pctColor,
-                          transition: 'width 0.5s ease',
+                          transition: 'width 0.5s ease', borderRadius: '5px'
                         }} />
                       </div>
                     </div>
 
                     {/* Output */}
-                    <div style={{ width: '100px', textAlign: 'right', fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                    <div style={{ width: '110px', textAlign: 'right', fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
                       {line.current.toLocaleString()} / {line.target.toLocaleString()}
                     </div>
 
                     {/* Percentage */}
-                    <div style={{ width: '60px', textAlign: 'right', fontSize: '14px', fontWeight: 'bold', color: pctColor, fontFamily: "'Press Start 2P', monospace" }}>
+                    <div className="cartoon-font" style={{ width: '70px', textAlign: 'right', fontSize: '18px', color: pctColor }}>
                       {line.pct}%
                     </div>
                   </div>

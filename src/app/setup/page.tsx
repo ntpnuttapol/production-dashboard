@@ -71,22 +71,18 @@ export default function SetupPage() {
   // Success state
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F172A' }}>
-        <div style={{
-          background: '#1E293B', border: '3px solid #10B981',
-          boxShadow: '6px 6px 0 0 rgba(0,0,0,0.5)',
-          padding: '40px', maxWidth: '420px', width: '100%', textAlign: 'center',
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-primary)' }}>
+        <div className="cartoon-card" style={{
+          padding: '48px 40px', maxWidth: '420px', width: '100%', textAlign: 'center',
         }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
-          <h2 style={{ margin: '0 0 8px', color: '#10B981', fontFamily: "'Press Start 2P', monospace", fontSize: '14px' }}>SETUP COMPLETE!</h2>
-          <p style={{ color: '#94A3B8', marginBottom: '8px' }}>รหัสพนักงาน: <strong style={{ color: '#F59E0B' }}>{form.employee_code.toUpperCase()}</strong></p>
-          <p style={{ color: '#64748B', marginBottom: '24px', fontSize: '14px' }}>ใช้รหัสนี้กับรหัสผ่านที่ตั้งไว้เพื่อเข้าสู่ระบบ</p>
-          <button onClick={() => router.push('/login')} style={{
-            padding: '14px 28px',
-            background: 'linear-gradient(90deg, #F59E0B, #10B981)',
-            color: '#000', border: 'none', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer',
-            fontFamily: "'Press Start 2P', monospace",
-            boxShadow: '4px 4px 0 0 rgba(0,0,0,0.3)',
+          <div style={{ fontSize: '56px', marginBottom: '16px', animation: 'float 3s ease-in-out infinite' }}>🎉</div>
+          <h2 className="cartoon-font" style={{ margin: '0 0 12px', color: 'var(--color-green)', fontSize: '20px' }}>SETUP COMPLETE!</h2>
+          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '8px', fontSize: '15px' }}>รหัสพนักงาน: <strong style={{ color: 'var(--color-running)', fontSize: '18px' }}>{form.employee_code.toUpperCase()}</strong></p>
+          <p style={{ color: 'var(--color-text-muted)', marginBottom: '32px', fontSize: '14px' }}>ใช้รหัสนี้กับรหัสผ่านที่ตั้งไว้เพื่อเข้าสู่ระบบ</p>
+          <button className="cartoon-btn" onClick={() => router.push('/login')} style={{
+            padding: '16px 32px',
+            background: 'var(--color-green)',
+            color: '#FFFFFF', fontSize: '15px',
           }}>
             ▶ GO TO LOGIN
           </button>
@@ -98,23 +94,20 @@ export default function SetupPage() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)', padding: '20px',
+      background: 'var(--color-bg-primary)', padding: '24px',
     }}>
       <div style={{ width: '100%', maxWidth: '460px' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚙️</div>
-          <h1 style={{ margin: '0 0 8px', fontSize: '16px', color: '#10B981', fontFamily: "'Press Start 2P', monospace" }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ fontSize: '56px', marginBottom: '16px', animation: 'float 3s ease-in-out infinite' }}>⚙️</div>
+          <h1 className="cartoon-font" style={{ margin: '0 0 8px', fontSize: '24px', color: 'var(--color-green)' }}>
             SETUP
           </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>สร้าง Admin เพื่อเริ่มใช้งาน</p>
+          <p style={{ margin: 0, fontSize: '15px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>สร้าง Admin เพื่อเริ่มใช้งาน</p>
         </div>
 
         {/* Form Card */}
-        <div style={{
-          background: '#1E293B', border: '3px solid #334155',
-          boxShadow: '6px 6px 0 0 rgba(0,0,0,0.5)', padding: '28px',
-        }}>
+        <div className="cartoon-card" style={{ padding: '32px' }}>
           <form onSubmit={handleSetup}>
             <div style={{ display: 'grid', gap: '16px' }}>
               <div>
@@ -143,33 +136,32 @@ export default function SetupPage() {
 
             {error && (
               <div style={{
-                marginTop: '16px', padding: '12px 16px',
-                background: '#7F1D1D', border: '2px solid #EF4444',
-                color: '#FCA5A5', fontSize: '14px',
+                marginTop: '20px', padding: '14px 16px',
+                background: '#FEE2E2', border: '2px solid #F87171', borderRadius: '12px',
+                color: '#B91C1C', fontSize: '14px', fontWeight: 'bold'
               }}>
                 ⚠️ {error}
               </div>
             )}
 
-            <button type="submit" disabled={saving} style={{
-              width: '100%', marginTop: '24px', padding: '16px',
-              fontSize: '14px', fontWeight: 'bold',
-              color: saving ? '#94A3B8' : '#000',
-              background: saving ? '#475569' : 'linear-gradient(90deg, #10B981, #059669)',
-              border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-              fontFamily: "'Press Start 2P', monospace",
-              boxShadow: saving ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)',
+            <button type="submit" disabled={saving} className="cartoon-btn" style={{
+              width: '100%', marginTop: '32px', padding: '16px',
+              fontSize: '15px',
+              color: '#FFFFFF',
+              background: saving ? 'var(--color-border-accent)' : 'var(--color-green)',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              boxShadow: saving ? 'none' : '0 6px 16px rgba(34, 197, 94, 0.4)',
             }}>
               {saving ? '⏳ CREATING...' : '🚀 CREATE ADMIN'}
             </button>
           </form>
 
           <div style={{
-            marginTop: '24px', padding: '14px',
-            background: '#10B98115', border: '2px solid #10B98130',
+            marginTop: '32px', padding: '16px',
+            background: '#D1FAE5', border: '2px dashed #059669', borderRadius: '16px',
           }}>
-            <p style={{ margin: 0, fontSize: '12px', color: '#10B981', lineHeight: '1.6' }}>
-              💡 ก่อนสร้าง Admin ต้องรัน SQL จากไฟล์ <code style={{ background: '#0F172A', padding: '2px 6px', color: '#F59E0B' }}>database/add_user_permissions.sql</code> ใน Supabase SQL Editor ก่อน 1 ครั้ง
+            <p style={{ margin: 0, fontSize: '13px', color: '#047857', lineHeight: '1.6', fontWeight: 600 }}>
+              💡 ก่อนสร้าง Admin ต้องรัน SQL จากไฟล์ <code style={{ background: '#FFFFFF', padding: '4px 8px', borderRadius: '6px', color: '#047857' }}>database/add_user_permissions.sql</code> ใน Supabase SQL Editor ก่อน 1 ครั้ง
             </p>
           </div>
         </div>

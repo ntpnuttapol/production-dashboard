@@ -88,7 +88,6 @@ export default function PlanningTable({ refreshTrigger, onEdit, onStartProductio
               <tr>
                 <th>วันที่แผน</th>
                 <th style={{ textAlign: 'center' }}>แผนก</th>
-                <th>สาย</th>
                 <th>ผลิตภัณฑ์</th>
                 <th>ล็อต</th>
                 <th style={{ textAlign: 'center' }}>จำนวน</th>
@@ -109,7 +108,6 @@ export default function PlanningTable({ refreshTrigger, onEdit, onStartProductio
                   <tr key={entry.id}>
                     <td style={{ fontWeight: '600', color: '#F59E0B' }}>{formatDate(entry.plan_date)}</td>
                     <td style={{ textAlign: 'center' }}><span style={{ padding: '4px 8px', background: `${deptConfig.color}20`, color: deptConfig.color, border: `1px solid ${deptConfig.color}40`, fontSize: '11px', fontWeight: '600' }}>{deptConfig.icon} {deptConfig.label}</span></td>
-                    <td>{entry.line_id}</td>
                     <td>{entry.product_name}</td>
                     <td style={{ color: '#94A3B8', fontFamily: 'monospace' }}>{entry.lot_number}</td>
                     <td style={{ textAlign: 'center', fontWeight: '600' }}>{entry.target_qty.toLocaleString()}</td>

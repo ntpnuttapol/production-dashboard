@@ -3,17 +3,16 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  PRODUCTION_LINES,
-  FINISHING_LINES,
-  getLineName,
   INPUT_STYLE,
   LABEL_STYLE,
 } from '@/lib/constants'
+import { useLines } from '@/lib/lines-context'
 
 interface PartNumberOption {
   id: string
   part_number: string
   part_name: string
+  customers?: { customer_name: string } | { customer_name: string }[] | null
   std_qty: number
   unit: string
 }
@@ -30,7 +29,6 @@ interface QuickEntryModalProps {
 
 const MODE_CONFIG = {
   production: {
-    lines: PRODUCTION_LINES,
     table: 'production_entries',
     department: 'production',
     title: 'ข้อมูลการผลิต',
@@ -42,7 +40,6 @@ const MODE_CONFIG = {
     accentBg: '#F59E0B20',
   },
   finishing: {
-    lines: FINISHING_LINES,
     table: 'finishing_entries',
     department: 'finishing',
     title: 'ข้อมูลการประกอบ',
@@ -58,6 +55,7 @@ const MODE_CONFIG = {
 export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, lineType, existingEntryId }: QuickEntryModalProps) {
   const supabase = createClient()
   const config = MODE_CONFIG[lineType]
+  const { getLineName } = useLines()
 
   const [loading, setLoading] = useState(false)
   const [loadingEntry, setLoadingEntry] = useState(false)
@@ -79,7 +77,6 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
     operator: '',
     remarks: '',
     image_url: '',
-    plan_id: null as string | null,
     part_number_id: null as string | null,
   })
 
@@ -88,12 +85,16 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
     if (!isOpen) return
 
     const fetchPartNumbers = async () => {
-      const { data } = await supabase
+      // Primary: simple query that always works
+      const { data, error } = await supabase
         .from('part_numbers')
-        .select('id, part_number, part_name, std_qty, unit')
+        .select('id, part_number, part_name, customer_id, std_qty, unit')
         .eq('is_active', true)
+        .eq('department', lineType)
         .order('part_number', { ascending: true })
-      if (data) setPartNumbers(data)
+      
+      console.log('[QuickEntryModal] fetchPartNumbers:', { lineType, data: data?.length, error })
+      if (data) setPartNumbers(data as PartNumberOption[])
     }
 
     const fetchExistingEntry = async () => {
@@ -119,7 +120,6 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
           operator: data.operator || '',
           remarks: data.remarks || '',
           image_url: data.image_url || '',
-          plan_id: data.plan_id || null,
           part_number_id: data.part_number_id || null,
         })
       }
@@ -138,13 +138,12 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
         target_qty: 0,
         completed_qty: 0,
         status: 'running',
-        shift: 'morning',
+        shift: (typeof window !== 'undefined' ? localStorage.getItem('pf_default_shift') as 'morning' | 'night' : null) || 'morning',
         start_time: '06:00',
         end_time: '',
-        operator: '',
+        operator: typeof window !== 'undefined' ? localStorage.getItem('pf_default_operator_quick') || '' : '',
         remarks: '',
         image_url: '',
-        plan_id: null,
         part_number_id: null,
       })
     }
@@ -178,7 +177,6 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
       const payload = {
         ...formData,
         end_time: formData.end_time || null,
-        plan_id: formData.plan_id || null,
         part_number_id: formData.part_number_id || null,
       }
 
@@ -188,6 +186,12 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
       } else {
         const { error } = await supabase.from(config.table).insert([payload])
         if (error) throw error
+      }
+
+      // Save defaults for next time
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pf_default_shift', formData.shift)
+        localStorage.setItem('pf_default_operator_quick', formData.operator)
       }
 
       setSuccess(true)
@@ -206,57 +210,47 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(4px)',
-        padding: '20px',
-      }}
+      className="cartoon-modal-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
+        className="cartoon-modal-content"
         style={{
-          background: '#1E293B',
           width: '100%',
           maxWidth: '600px',
           maxHeight: '90vh',
           overflow: 'auto',
-          boxShadow: '8px 8px 0 0 rgba(0,0,0,0.5)',
-          border: `3px solid ${config.accentColor}`,
+          padding: '0',
+          border: `4px solid ${config.accentColor}`,
         }}
       >
         {/* Header */}
         <div style={{
-          padding: '16px 20px',
-          background: config.gradient,
-          color: '#000',
+          padding: '20px 24px',
+          background: config.accentBg,
+          color: 'var(--color-text-primary)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          borderBottom: `2px dashed ${config.accentColor}`,
         }}>
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 'bold', fontFamily: "'Press Start 2P', monospace" }}>
-              {existingEntryId ? '✏️ EDIT' : '➕ ADD'}
+            <div className="cartoon-font" style={{ fontSize: '18px', color: config.accentColor }}>
+              {existingEntryId ? '✏️ EDIT ENTRY' : '➕ ADD ENTRY'}
             </div>
-            <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '4px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600', marginTop: '4px' }}>
               {lineId} — {getLineName(lineId)}
             </div>
           </div>
           <button
             onClick={onClose}
+            className="cartoon-btn"
             style={{
-              background: 'rgba(0,0,0,0.2)',
-              border: 'none',
-              color: '#000',
-              width: '32px',
-              height: '32px',
+              background: '#FFFFFF',
+              color: 'var(--color-text-primary)',
+              width: '40px',
+              height: '40px',
               fontSize: '18px',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -268,18 +262,18 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
 
         {/* Form */}
         {loadingEntry ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>
+          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: '600', fontSize: '16px' }}>
             ⏳ กำลังโหลดข้อมูล...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ padding: '20px' }}>
+          <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
             {error && (
-              <div style={{ padding: '10px 14px', background: '#7F1D1D', border: '2px solid #EF4444', color: '#FCA5A5', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ padding: '12px 16px', background: '#FEE2E2', border: '2px solid #F87171', borderRadius: '12px', color: '#B91C1C', marginBottom: '20px', fontSize: '14px', fontWeight: 'bold' }}>
                 ⚠️ {error}
               </div>
             )}
             {success && (
-              <div style={{ padding: '10px 14px', background: '#10B98120', border: '2px solid #10B981', color: '#10B981', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ padding: '12px 16px', background: '#D1FAE5', border: '2px solid #34D399', borderRadius: '12px', color: '#047857', marginBottom: '20px', fontSize: '14px', fontWeight: 'bold' }}>
                 ✅ บันทึกสำเร็จ!
               </div>
             )}
@@ -294,11 +288,14 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                   style={{ ...INPUT_STYLE, borderColor: config.accentColor }}
                 >
                   <option value="">-- ไม่เลือก (กรอกชื่อเอง) --</option>
-                  {partNumbers.map(pn => (
-                    <option key={pn.id} value={pn.id}>
-                      {pn.part_number} — {pn.part_name} (Std: {pn.std_qty}/{pn.unit}/ชม.)
-                    </option>
-                  ))}
+                  {partNumbers.map(pn => {
+                    const customerName = Array.isArray(pn.customers) ? pn.customers[0]?.customer_name : pn.customers?.customer_name;
+                    return (
+                      <option key={pn.id} value={pn.id}>
+                        {pn.part_number} — {pn.part_name} {customerName ? `(${customerName})` : ''} (Std: {pn.std_qty}/{pn.unit}/ชม.)
+                      </option>
+                    )
+                  })}
                 </select>
               </div>
 
@@ -331,7 +328,7 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
 
               {/* Operator */}
               <div>
-                <label style={LABEL_STYLE}>👷 ผู้รับผิดชอบ *</label>
+                <label style={LABEL_STYLE}>👨‍🔧 ผู้รับผิดชอบ *</label>
                 <input
                   type="text"
                   value={formData.operator}
@@ -376,9 +373,20 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                 <input
                   type="number"
                   value={formData.completed_qty}
-                  onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, completed_qty: val, status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status })) }}
+                  onChange={(e) => {
+                    let val = parseInt(e.target.value) || 0;
+                    if (formData.target_qty > 0) {
+                      val = Math.min(val, formData.target_qty);
+                    }
+                    setFormData(prev => ({
+                      ...prev,
+                      completed_qty: val,
+                      status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status
+                    }))
+                  }}
                   min="0"
-                  style={{ ...INPUT_STYLE, borderColor: config.accentColor, background: config.accentBg, fontWeight: 'bold', fontSize: '16px', color: '#F1F5F9' }}
+                  max={formData.target_qty > 0 ? formData.target_qty : undefined}
+                  style={{ ...INPUT_STYLE, borderColor: config.accentColor, background: config.accentBg, fontWeight: 'bold', fontSize: '16px', color: config.accentColor }}
                   required
                 />
               </div>
@@ -386,12 +394,12 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
               {/* Shift */}
               <div>
                 <label style={LABEL_STYLE}>กะ</label>
-                <div style={{ display: 'flex', gap: '12px', paddingTop: '6px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#F1F5F9' }}>
+                <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
                     <input type="radio" name="modal-shift" value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
                     ☀️ เช้า
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#F1F5F9' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
                     <input type="radio" name="modal-shift" value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
                     🌙 กลางคืน
                   </label>
@@ -435,19 +443,17 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
               <button
                 type="button"
                 onClick={onClose}
+                className="cartoon-btn"
                 style={{
                   flex: 1,
-                  padding: '12px',
-                  background: 'transparent',
-                  color: '#94A3B8',
-                  border: '2px solid #334155',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
+                  padding: '14px',
+                  background: 'var(--color-bg-input)',
+                  color: 'var(--color-text-secondary)',
+                  fontSize: '15px',
                 }}
               >
                 ยกเลิก
@@ -455,17 +461,15 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
               <button
                 type="submit"
                 disabled={loading || success}
+                className="cartoon-btn"
                 style={{
                   flex: 2,
-                  padding: '12px',
-                  background: loading || success ? '#475569' : config.gradient,
-                  color: loading || success ? '#94A3B8' : '#000',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
+                  padding: '14px',
+                  background: loading || success ? 'var(--color-border-accent)' : config.accentColor,
+                  color: '#FFFFFF',
+                  fontSize: '15px',
                   cursor: loading || success ? 'not-allowed' : 'pointer',
-                  fontFamily: "'Press Start 2P', monospace",
-                  boxShadow: loading || success ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)',
+                  boxShadow: loading || success ? 'none' : `0 6px 16px ${config.accentColor}40`,
                 }}
               >
                 {loading ? '⏳ SAVING...' : success ? '✅ DONE!' : existingEntryId ? '💾 SAVE' : '✅ SUBMIT'}

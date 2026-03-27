@@ -24,30 +24,27 @@ export default function ProductionPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
       <Navbar />
-      <div className="pixel-container">
+      <div className="cartoon-container">
         {/* Page Title */}
-        <div className="pixel-page-title">
+        <div className="cartoon-page-title">
           <div>
-            <h1 style={{ margin: 0, fontSize: '14px', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace" }}>
+            <h1 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-running)' }}>
               📝 PRODUCTION
             </h1>
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B' }}>บันทึกข้อมูลการผลิตประจำวัน</p>
+            <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>บันทึกข้อมูลการผลิตประจำวัน</p>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '12px' }}>
             {!showForm && (
               <button
+                className="cartoon-btn"
                 onClick={() => { setEditData(undefined); setShowForm(true) }}
                 style={{
-                  padding: '10px 18px',
-                  background: 'linear-gradient(90deg, #F59E0B, #10B981)',
-                  color: '#000',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+                  padding: '10px 20px',
+                  background: 'var(--color-running)',
+                  color: '#FFFFFF',
+                  fontSize: '14px',
                 }}
               >
                 ➕ เพิ่มข้อมูลใหม่
@@ -57,15 +54,15 @@ export default function ProductionPage() {
         </div>
 
         {showForm && (
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '24px' }}>
             <WorkEntryForm mode="production" onSuccess={handleSuccess} editData={editData} />
             <button
+              className="cartoon-btn"
               onClick={() => { setShowForm(false); setEditData(undefined) }}
               style={{
-                marginTop: '12px', padding: '10px 20px', width: '100%',
-                background: '#0F172A', color: '#94A3B8', border: '2px solid #334155',
-                fontSize: '14px', cursor: 'pointer', fontWeight: '600',
-                boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+                marginTop: '16px', padding: '12px 24px', width: '100%',
+                background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)',
+                fontSize: '15px'
               }}
             >
               ❌ ยกเลิก

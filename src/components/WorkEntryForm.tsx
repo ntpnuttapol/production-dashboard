@@ -7,13 +7,14 @@ import {
   FINISHING_LINES,
   INPUT_STYLE,
   LABEL_STYLE,
-  getLineName,
 } from '@/lib/constants'
+import { useLines } from '@/lib/lines-context'
 
 interface PartNumberOption {
   id: string
   part_number: string
   part_name: string
+  customers?: { customer_name: string; customer_code: string } | { customer_name: string; customer_code: string }[] | null
   std_qty: number
   unit: string
 }
@@ -32,18 +33,6 @@ interface WorkEntryFormData {
   operator: string
   remarks: string
   image_url: string
-  plan_id: string | null
-  part_number_id: string | null
-}
-
-interface PlanEntry {
-  id: string
-  plan_date: string
-  line_id: string
-  product_name: string
-  lot_number: string
-  target_qty: number
-  status: string
   part_number_id: string | null
 }
 
@@ -101,16 +90,20 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const config = MODE_CONFIG[mode]
+  const { productionLines, finishingLines, getLineName } = useLines()
+
+  const currentLines = mode === 'production' ? productionLines : finishingLines
+  const defaultLineFallback = currentLines.length > 0 ? currentLines[0].id : ''
+  const defaultLineNameFallback = currentLines.length > 0 ? currentLines[0].name : ''
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(editData?.image_url || null)
-  const [plans, setPlans] = useState<PlanEntry[]>([])
   const [partNumbers, setPartNumbers] = useState<PartNumberOption[]>([])
 
   const [formData, setFormData] = useState<WorkEntryFormData>({
-    line_id: editData?.line_id || config.defaultLine,
-    line_name: editData?.line_name || config.defaultLineName,
+    line_id: editData?.line_id || defaultLineFallback,
+    line_name: editData?.line_name || defaultLineNameFallback,
     product_name: editData?.product_name || '',
     lot_number: editData?.lot_number || '',
     target_qty: editData?.target_qty || 0,
@@ -122,77 +115,38 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
     operator: editData?.operator || '',
     remarks: editData?.remarks || '',
     image_url: editData?.image_url || '',
-    plan_id: editData?.plan_id || null,
     part_number_id: editData?.part_number_id || null,
   })
 
-  // Fetch available plans and part numbers
   useEffect(() => {
-    const fetchPlans = async () => {
-      const { data } = await supabase
-        .from('planning_entries')
-        .select('*')
-        .eq('department', config.department)
-        .in('status', ['pending', 'in_progress'])
-        .order('plan_date', { ascending: false })
-      if (data) setPlans(data)
-    }
     const fetchPartNumbers = async () => {
-      const { data } = await supabase
+      // Primary: simple query that always works
+      const { data, error } = await supabase
         .from('part_numbers')
-        .select('id, part_number, part_name, std_qty, unit')
+        .select('id, part_number, part_name, customer_id, std_qty, unit')
         .eq('is_active', true)
+        .eq('department', mode)
         .order('part_number', { ascending: true })
-      if (data) setPartNumbers(data)
+      
+      console.log('[WorkEntryForm] fetchPartNumbers:', { mode, data: data?.length, error })
+      if (data) setPartNumbers(data as PartNumberOption[])
     }
-    fetchPlans()
     fetchPartNumbers()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
-  // Check for selected plan from navigation (sessionStorage)
-  useEffect(() => {
     if (!editData) {
-      const storedPlan = sessionStorage.getItem('selectedPlan')
-      if (storedPlan) {
-        try {
-          const planData = JSON.parse(storedPlan)
-          setFormData(prev => ({
-            ...prev,
-            plan_id: planData.plan_id,
-            line_id: planData.line_id,
-            line_name: getLineName(planData.line_id),
-            product_name: planData.product_name,
-            lot_number: planData.lot_number,
-            target_qty: planData.target_qty,
-            part_number_id: planData.part_number_id || null,
-          }))
-          // Clear after use so it doesn't persist on refresh/navigation
-          sessionStorage.removeItem('selectedPlan')
-        } catch (err) {
-          console.error('Failed to parse selected plan:', err)
+      if (typeof window !== 'undefined') {
+        const storedOperator = localStorage.getItem('pf_default_operator_full')
+        const storedShift = localStorage.getItem('pf_default_shift_full')
+        if (storedOperator) {
+          setFormData(prev => ({ ...prev, operator: storedOperator }))
+        }
+        if (storedShift) {
+          setFormData(prev => ({ ...prev, shift: storedShift as 'morning' | 'night' }))
         }
       }
     }
-  }, [editData])
-
-  const handlePlanSelect = (planId: string) => {
-    const plan = plans.find(p => p.id === planId)
-    if (plan) {
-      setFormData(prev => ({
-        ...prev,
-        plan_id: planId,
-        line_id: plan.line_id,
-        line_name: getLineName(plan.line_id),
-        product_name: plan.product_name,
-        lot_number: plan.lot_number,
-        target_qty: plan.target_qty,
-        part_number_id: plan.part_number_id || null,
-      }))
-    } else {
-      setFormData(prev => ({ ...prev, plan_id: null, part_number_id: null }))
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handlePartNumberSelect = (partId: string) => {
     if (!partId) {
@@ -240,11 +194,9 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
     setError(null)
 
     try {
-      // Sanitize data: Convert empty strings to null for optional fields
       const payload = {
         ...formData,
         end_time: formData.end_time || null,
-        plan_id: formData.plan_id || null,
         part_number_id: formData.part_number_id || null,
       }
 
@@ -254,19 +206,19 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
       } else {
         const { error } = await supabase.from(config.table).insert([payload])
         if (error) throw error
+      }
 
-        // Update plan status to in_progress if linked
-        if (formData.plan_id) {
-          await supabase.from('planning_entries').update({ status: 'in_progress' }).eq('id', formData.plan_id)
-        }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pf_default_operator_full', formData.operator)
+        localStorage.setItem('pf_default_shift_full', formData.shift)
       }
 
       onSuccess?.()
 
       if (!editData) {
         setFormData({
-          line_id: config.defaultLine,
-          line_name: config.defaultLineName,
+          line_id: defaultLineFallback,
+          line_name: defaultLineNameFallback,
           product_name: '',
           lot_number: '',
           target_qty: 0,
@@ -275,10 +227,9 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
           shift: 'morning',
           start_time: '06:00',
           end_time: '',
-          operator: '',
+          operator: formData.operator, // persist auto-fill visually in form
           remarks: '',
           image_url: '',
-          plan_id: null,
           part_number_id: null,
         })
         setImagePreview(null)
@@ -291,33 +242,18 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: '#1E293B', border: '3px solid #334155', boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '24px' }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: '12px', fontWeight: 'bold', color: config.accentColor, fontFamily: "'Press Start 2P', monospace" }}>
+    <form onSubmit={handleSubmit} className="cartoon-card" style={{ padding: '32px' }}>
+      <h2 className="cartoon-font" style={{ margin: '0 0 24px', fontSize: '18px', color: config.accentColor }}>
         {editData ? '✏️ EDIT' : `➕ ${config.title.toUpperCase()}`}
       </h2>
 
       {error && <div style={{ padding: '12px', background: '#7F1D1D', border: '2px solid #EF4444', color: '#FCA5A5', marginBottom: '16px', fontSize: '14px' }}>⚠️ {error}</div>}
 
-      {/* Plan Selector */}
-      {plans.length > 0 && !editData && (
-        <div style={{ marginBottom: '20px', padding: '16px', background: config.planBg, border: `2px solid ${config.planBorder}40` }}>
-          <label style={{ ...LABEL_STYLE, color: config.planLabelColor }}>📋 เลือกจากแผนที่วางไว้</label>
-          <select value={formData.plan_id || ''} onChange={(e) => handlePlanSelect(e.target.value)} style={{ ...INPUT_STYLE, borderColor: config.planBorder }}>
-            <option value="">-- กรอกข้อมูลเอง (ไม่เลือกแผน) --</option>
-            {plans.map(plan => (
-              <option key={plan.id} value={plan.id}>
-                [{plan.plan_date}] {plan.line_id} - {plan.product_name} ({plan.lot_number}) เป้าหมาย: {plan.target_qty}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
         <div>
           <label style={LABEL_STYLE}>{config.lineLabel} *</label>
-          <select value={formData.line_id} onChange={(e) => handleLineChange(e.target.value)} style={INPUT_STYLE} required disabled={!!formData.plan_id}>
-            {config.lines.map(line => (
+          <select value={formData.line_id} onChange={(e) => handleLineChange(e.target.value)} style={INPUT_STYLE} required>
+            {currentLines.map(line => (
               <option key={line.id} value={line.id}>{line.id} - {line.name}</option>
             ))}
           </select>
@@ -329,25 +265,28 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
             value={formData.part_number_id || ''}
             onChange={(e) => handlePartNumberSelect(e.target.value)}
             style={INPUT_STYLE}
-            disabled={!!formData.plan_id}
           >
             <option value="">-- ไม่เลือก (กรอกชื่อเอง) --</option>
-            {partNumbers.map(pn => (
-              <option key={pn.id} value={pn.id}>
-                {pn.part_number} - {pn.part_name} (Std: {pn.std_qty}/{pn.unit}/ชม.)
-              </option>
-            ))}
+            {partNumbers.map(pn => {
+              const custRaw = pn.customers
+              const cust = Array.isArray(custRaw) ? custRaw[0] : custRaw
+              return (
+                <option key={pn.id} value={pn.id}>
+                  [{pn.part_number}] {pn.part_name}{cust ? ` | ลูกค้า: ${cust.customer_name}` : ''} (Std: {pn.std_qty}/{pn.unit}/ชม.)
+                </option>
+              )
+            })}
           </select>
         </div>
 
         <div>
           <label style={LABEL_STYLE}>ชื่อผลิตภัณฑ์ *</label>
-          <input type="text" value={formData.product_name} onChange={(e) => setFormData(prev => ({ ...prev, product_name: e.target.value }))} placeholder="เช่น PCB Board v2.1" style={INPUT_STYLE} required readOnly={!!formData.plan_id || !!formData.part_number_id} />
+          <input type="text" value={formData.product_name} onChange={(e) => setFormData(prev => ({ ...prev, product_name: e.target.value }))} placeholder="เช่น PCB Board v2.1" style={INPUT_STYLE} required readOnly={!!formData.part_number_id} />
         </div>
 
         <div>
           <label style={LABEL_STYLE}>หมายเลขล็อต *</label>
-          <input type="text" value={formData.lot_number} onChange={(e) => setFormData(prev => ({ ...prev, lot_number: e.target.value }))} placeholder="เช่น LOT-2024-001" style={INPUT_STYLE} required readOnly={!!formData.plan_id} />
+          <input type="text" value={formData.lot_number} onChange={(e) => setFormData(prev => ({ ...prev, lot_number: e.target.value }))} placeholder="เช่น LOT-2024-001" style={INPUT_STYLE} required />
         </div>
 
         <div>
@@ -357,12 +296,30 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
 
         <div>
           <label style={LABEL_STYLE}>เป้าหมาย (ชิ้น) *</label>
-          <input type="number" value={formData.target_qty} onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, target_qty: val, status: prev.completed_qty >= val && val > 0 ? 'completed' : prev.status === 'completed' && prev.completed_qty < val ? 'running' : prev.status })) }} min="0" style={INPUT_STYLE} required readOnly={!!formData.plan_id} />
+          <input type="number" value={formData.target_qty} onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, target_qty: val, status: prev.completed_qty >= val && val > 0 ? 'completed' : prev.status === 'completed' && prev.completed_qty < val ? 'running' : prev.status })) }} min="0" style={INPUT_STYLE} required />
         </div>
 
         <div>
           <label style={LABEL_STYLE}>{config.completedLabel} *</label>
-          <input type="number" value={formData.completed_qty} onChange={(e) => { const val = parseInt(e.target.value) || 0; setFormData(prev => ({ ...prev, completed_qty: val, status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status })) }} min="0" style={{ ...INPUT_STYLE, borderColor: config.completedInputBorder, background: config.completedInputBg, color: '#F1F5F9' }} required />
+          <input
+            type="number"
+            value={formData.completed_qty}
+            onChange={(e) => {
+              let val = parseInt(e.target.value) || 0;
+              if (formData.target_qty > 0) {
+                val = Math.min(val, formData.target_qty);
+              }
+              setFormData(prev => ({
+                ...prev,
+                completed_qty: val,
+                status: val >= prev.target_qty && prev.target_qty > 0 ? 'completed' : prev.status === 'completed' && val < prev.target_qty ? 'running' : prev.status
+              }))
+            }}
+            min="0"
+            max={formData.target_qty > 0 ? formData.target_qty : undefined}
+            style={{ ...INPUT_STYLE, borderColor: config.completedInputBorder, background: config.completedInputBg, color: 'var(--color-text-primary)', fontWeight: 'bold' }}
+            required
+          />
         </div>
 
         <div>
@@ -379,11 +336,11 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
           <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input type="radio" name={`shift-${mode}`} value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
-              <span style={{ fontSize: '14px', color: '#F1F5F9' }}>☀️ กะเช้า</span>
+              <span style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>☀️ กะเช้า</span>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input type="radio" name={`shift-${mode}`} value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
-              <span style={{ fontSize: '14px', color: '#F1F5F9' }}>🌙 กะกลางคืน</span>
+              <span style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>🌙 กะกลางคืน</span>
             </label>
           </div>
         </div>
@@ -407,7 +364,7 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
       <div style={{ marginTop: '16px' }}>
         <label style={LABEL_STYLE}>รูปภาพงาน</label>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-          <div onClick={() => fileInputRef.current?.click()} style={{ width: '120px', height: '120px', border: '2px dashed #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#0F172A', overflow: 'hidden' }}>
+          <div onClick={() => fileInputRef.current?.click()} style={{ width: '120px', height: '120px', border: '2px dashed var(--color-border)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--color-bg-input)', overflow: 'hidden' }}>
             {imagePreview ? (
               <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -425,7 +382,7 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
       </div>
 
       <div style={{ marginTop: '24px' }}>
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: loading ? '#475569' : config.gradient, color: loading ? '#94A3B8' : '#000', border: 'none', fontSize: '14px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'Press Start 2P', monospace", boxShadow: loading ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)' }}>
+        <button type="submit" disabled={loading} className="cartoon-btn" style={{ width: '100%', padding: '16px', background: loading ? 'var(--color-border-accent)' : config.accentColor, color: '#FFFFFF', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : `0 6px 16px ${config.accentColor}40` }}>
           {loading ? '⏳ SAVING...' : editData ? '💾 SAVE' : '✅ SUBMIT'}
         </button>
       </div>

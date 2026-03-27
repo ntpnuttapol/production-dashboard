@@ -4,7 +4,7 @@ import React from 'react'
 // SHARED CONSTANTS - Single source of truth
 // ═══════════════════════════════════════
 
-// --- Production Lines ---
+// FALLBACK lines for when the DB is not reachable
 export const PRODUCTION_LINES = [
   { id: 'LINE-01', name: 'สายการผลิต A' },
   { id: 'LINE-02', name: 'สายการผลิต B' },
@@ -20,12 +20,6 @@ export const FINISHING_LINES = [
   { id: 'FINISH-03', name: 'สายประกอบ C' },
   { id: 'FINISH-04', name: 'สายประกอบ D' },
 ]
-
-// --- Lookup helpers ---
-export function getLineName(lineId: string): string {
-  const all = [...PRODUCTION_LINES, ...FINISHING_LINES]
-  return all.find(l => l.id === lineId)?.name || ''
-}
 
 // --- Status Configs ---
 export const PRODUCTION_STATUS_CONFIG = {
@@ -63,28 +57,29 @@ export const DEPT_CONFIG = {
   finishing: { label: 'Finishing', color: '#8B5CF6', bg: '#EDE9FE', icon: '🔧' },
 } as const
 
-// --- Shared Styles (Pixel Art Dark Theme) ---
+// --- Shared Styles (Minimal Cartoon Theme) ---
 export const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
-  padding: '10px 14px',
-  fontSize: '14px',
-  border: '2px solid #334155',
-  borderRadius: '4px',
-  background: '#0F172A',
-  color: '#F1F5F9',
+  padding: '12px 16px',
+  fontSize: '15px',
+  border: '2px solid var(--color-border)',
+  borderRadius: '16px',
+  background: 'var(--color-bg-input)',
+  color: 'var(--color-text-primary)',
   outline: 'none',
   boxSizing: 'border-box' as const,
-  fontFamily: "'Noto Sans Thai', sans-serif",
+  fontFamily: "'Nunito', 'Kanit', sans-serif",
+  fontWeight: '600',
+  transition: 'all 0.2s ease',
 }
 
 export const LABEL_STYLE: React.CSSProperties = {
   display: 'block',
-  fontSize: '12px',
-  fontWeight: '600',
-  color: '#F59E0B',
-  marginBottom: '6px',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.5px',
+  fontSize: '13px',
+  fontWeight: '700',
+  color: 'var(--color-text-secondary)',
+  marginBottom: '8px',
+  fontFamily: "'Nunito', sans-serif",
 }
 
 // --- Pixel Art Shared Styles ---
@@ -252,6 +247,8 @@ export interface PartNumber {
   id: string
   part_number: string
   part_name: string
+  customer_id?: string | null
+  customers?: { customer_name: string } | null
   std_qty: number
   unit: string
   description: string

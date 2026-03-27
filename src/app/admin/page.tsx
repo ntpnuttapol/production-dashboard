@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth-context'
 import Navbar from '@/components/Navbar'
-import { PRODUCTION_LINES, FINISHING_LINES, INPUT_STYLE, LABEL_STYLE, PIXEL_CARD_STYLE } from '@/lib/constants'
+import { INPUT_STYLE, LABEL_STYLE } from '@/lib/constants'
+import { useLines, type LineData } from '@/lib/lines-context'
 
 interface Profile {
   id: string
@@ -23,12 +24,14 @@ const DEPT_CONFIG = {
   finishing: { label: '🔧 Finishing', color: '#8B5CF6' },
 }
 
-const ALL_LINES = [...PRODUCTION_LINES, ...FINISHING_LINES]
-
 export default function AdminPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const supabase = createClient()
+  const { productionLines, finishingLines, refreshLines } = useLines()
+  const ALL_LINES = [...productionLines, ...finishingLines]
+
+  const [activeTab, setActiveTab] = useState<'users' | 'lines'>('users')
 
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,6 +40,10 @@ export default function AdminPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resettingUser, setResettingUser] = useState<Profile | null>(null)
+  const [newPassword, setNewPassword] = useState('')
 
   const [newUser, setNewUser] = useState({
     employee_code: '',
@@ -50,6 +57,16 @@ export default function AdminPage() {
   const resetNewUser = () => setNewUser({
     employee_code: '', full_name: '', password: '',
     role: 'user', department: 'production', allowed_lines: [],
+  })
+
+  // Lines Management States
+  const [showLineModal, setShowLineModal] = useState(false)
+  const [editingLine, setEditingLine] = useState<LineData | null>(null)
+  const [newLine, setNewLine] = useState<Partial<LineData>>({
+    id: '',
+    name: '',
+    department: 'production',
+    is_active: true,
   })
 
   useEffect(() => {
@@ -117,8 +134,8 @@ export default function AdminPage() {
   const selectAllLines = (type: 'production' | 'finishing' | 'all') => {
     if (!editingProfile) return
     let newLines: string[] = []
-    if (type === 'production') newLines = PRODUCTION_LINES.map(l => l.id)
-    else if (type === 'finishing') newLines = FINISHING_LINES.map(l => l.id)
+    if (type === 'production') newLines = productionLines.map(l => l.id)
+    else if (type === 'finishing') newLines = finishingLines.map(l => l.id)
     else newLines = ALL_LINES.map(l => l.id)
     setEditingProfile({ ...editingProfile, allowed_lines: newLines })
   }
@@ -133,10 +150,41 @@ export default function AdminPage() {
 
   const selectNewLines = (type: 'production' | 'finishing' | 'all') => {
     let lines: string[] = []
-    if (type === 'production') lines = PRODUCTION_LINES.map(l => l.id)
-    else if (type === 'finishing') lines = FINISHING_LINES.map(l => l.id)
+    if (type === 'production') lines = productionLines.map(l => l.id)
+    else if (type === 'finishing') lines = finishingLines.map(l => l.id)
     else lines = ALL_LINES.map(l => l.id)
     setNewUser({ ...newUser, allowed_lines: lines })
+  }
+
+  const handleOpenReset = (profile: Profile) => {
+    setResettingUser(profile)
+    setNewPassword('')
+    setShowResetModal(true)
+    setMessage(null)
+  }
+
+  const handleResetPassword = async () => {
+    if (!resettingUser) return
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' })
+      return
+    }
+
+    setSaving(true)
+    const { data, error } = await supabase.rpc('admin_reset_password', {
+      p_employee_code: resettingUser.employee_code,
+      p_new_password: newPassword
+    })
+
+    setSaving(false)
+    if (error) {
+      setMessage({ type: 'error', text: `รีเซ็ตรหัสผ่านไม่สำเร็จ: ${error.message}` })
+    } else if (data?.error) {
+      setMessage({ type: 'error', text: data.error })
+    } else {
+      setMessage({ type: 'success', text: `รีเซ็ตรหัสผ่านให้ ${resettingUser.employee_code} สำเร็จ เป็น: ${newPassword}` })
+      setShowResetModal(false)
+    }
   }
 
   const handleCreateUser = async () => {
@@ -170,10 +218,54 @@ export default function AdminPage() {
     fetchProfiles()
   }
 
+  const handleSaveLine = async () => {
+    const lineToSave = editingLine || newLine
+    if (!lineToSave.id || !lineToSave.name || !lineToSave.department) {
+      setMessage({ type: 'error', text: 'กรุณากรอกข้อมูลให้ครบถ้วน' })
+      return
+    }
+
+    setSaving(true)
+    setMessage(null)
+
+    const { error } = await supabase.rpc('upsert_line', {
+      p_id: lineToSave.id,
+      p_name: lineToSave.name,
+      p_department: lineToSave.department,
+      p_is_active: lineToSave.is_active,
+    })
+
+    setSaving(false)
+    if (error) {
+      setMessage({ type: 'error', text: `บันทึกไม่สำเร็จ: ${error.message}` })
+    } else {
+      setMessage({ type: 'success', text: 'บันทึกสายงานสำเร็จ!' })
+      setShowLineModal(false)
+      refreshLines() // Refresh lines context
+    }
+  }
+
+  const toggleLineStatus = async (line: LineData) => {
+    setSaving(true)
+    const { error } = await supabase.rpc('upsert_line', {
+      p_id: line.id,
+      p_name: line.name,
+      p_department: line.department,
+      p_is_active: !line.is_active,
+    })
+    setSaving(false)
+    if (error) {
+      setMessage({ type: 'error', text: `อัปเดตสถานะไม่สำเร็จ: ${error.message}` })
+    } else {
+      setMessage({ type: 'success', text: `อัปเดตสถานะสายงาน ${line.id} แล้ว` })
+      refreshLines()
+    }
+  }
+
   if (authLoading || !isAdmin) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F172A' }}>
-        <div style={{ color: '#F59E0B', fontSize: '14px', fontFamily: "'Press Start 2P', monospace" }}>⏳ LOADING...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-primary)' }}>
+        <div className="cartoon-font" style={{ color: 'var(--color-blue)', fontSize: '20px', animation: 'pulseSoft 2s infinite' }}>⏳ LOADING...</div>
       </div>
     )
   }
@@ -186,34 +278,34 @@ export default function AdminPage() {
   }) => (
     <div>
       <label style={LABEL_STYLE}>สายงานที่เข้าถึงได้</label>
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
         {['production', 'finishing', 'all'].map(type => (
-          <button key={type} type="button" onClick={() => onSelectAll(type as 'production' | 'finishing' | 'all')} style={{
-            padding: '4px 10px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer',
-            background: 'transparent', border: `2px solid ${type === 'production' ? '#F59E0B' : type === 'finishing' ? '#8B5CF6' : '#EF4444'}`,
-            color: type === 'production' ? '#F59E0B' : type === 'finishing' ? '#8B5CF6' : '#EF4444',
-            boxShadow: '2px 2px 0 0 rgba(0,0,0,0.2)',
+          <button key={type} type="button" onClick={() => onSelectAll(type as 'production' | 'finishing' | 'all')} className="cartoon-btn" style={{
+            padding: '6px 14px', fontSize: '12px', cursor: 'pointer',
+            background: 'var(--color-bg-secondary)', border: `2px solid ${type === 'production' ? 'var(--color-running)' : type === 'finishing' ? 'var(--color-purple)' : 'var(--color-red)'}`,
+            color: type === 'production' ? 'var(--color-running)' : type === 'finishing' ? 'var(--color-purple)' : 'var(--color-red)',
           }}>
             {type === 'production' ? 'Prod ทั้งหมด' : type === 'finishing' ? 'Fin ทั้งหมด' : 'เลือกทั้งหมด'}
           </button>
         ))}
       </div>
       {[
-        { label: '🏭 Production', lines: PRODUCTION_LINES, color: '#F59E0B' },
-        { label: '🔧 Finishing', lines: FINISHING_LINES, color: '#8B5CF6' },
+        { label: '🏭 Production', lines: productionLines, color: '#F59E0B' },
+        { label: '🔧 Finishing', lines: finishingLines, color: '#8B5CF6' },
       ].map(group => (
-        <div key={group.label} style={{ marginBottom: '8px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: group.color, marginBottom: '4px' }}>{group.label}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        <div key={group.label} style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: group.color, marginBottom: '8px', fontFamily: 'Nunito, sans-serif' }}>{group.label}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {group.lines.map(line => {
               const sel = selectedLines.includes(line.id)
               return (
-                <button key={line.id} type="button" onClick={() => onToggle(line.id)} style={{
-                  padding: '5px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
-                  background: sel ? group.color : 'transparent',
-                  color: sel ? '#000' : '#64748B',
-                  border: `2px solid ${sel ? group.color : '#334155'}`,
-                  boxShadow: sel ? '2px 2px 0 0 rgba(0,0,0,0.3)' : 'none',
+                <button key={line.id} type="button" onClick={() => onToggle(line.id)} className="cartoon-btn" style={{
+                  padding: '6px 12px', fontSize: '12px', cursor: 'pointer',
+                  background: sel ? group.color : 'var(--color-bg-primary)',
+                  color: sel ? '#FFFFFF' : 'var(--color-text-secondary)',
+                  border: `2px solid ${sel ? group.color : 'var(--color-border)'}`,
+                  boxShadow: sel ? `0 4px 10px ${group.color}40` : 'none',
+                  borderRadius: '12px',
                 }}>
                   {line.id}
                 </button>
@@ -226,116 +318,214 @@ export default function AdminPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
       <Navbar />
-      <div className="pixel-container">
+      <div className="cartoon-container">
         {/* Page Title */}
-        <div className="pixel-page-title">
+        <div className="cartoon-page-title">
           <div>
-            <h1 style={{ margin: 0, fontSize: '14px', color: '#EF4444', fontFamily: "'Press Start 2P', monospace" }}>
+            <h1 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>
               ⚙️ ADMIN PANEL
             </h1>
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B' }}>จัดการผู้ใช้งานและสิทธิ์การเข้าถึง</p>
+            <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>จัดการผู้ใช้งานและสิทธิ์การเข้าถึง</p>
           </div>
         </div>
 
         {/* Message */}
         {message && (
           <div style={{
-            padding: '12px 16px', marginBottom: '16px',
-            background: message.type === 'success' ? '#10B98120' : '#EF444420',
-            color: message.type === 'success' ? '#10B981' : '#EF4444',
-            border: `2px solid ${message.type === 'success' ? '#10B98140' : '#EF444440'}`,
-            fontWeight: '600', fontSize: '14px',
+            padding: '16px 20px', marginBottom: '24px', borderRadius: '16px',
+            background: message.type === 'success' ? '#D1FAE5' : '#FEE2E2',
+            color: message.type === 'success' ? '#047857' : '#B91C1C',
+            border: `2px solid ${message.type === 'success' ? '#34D399' : '#F87171'}`,
+            fontWeight: '700', fontSize: '14px', fontFamily: "'Nunito', sans-serif"
           }}>
             {message.type === 'success' ? '✅' : '❌'} {message.text}
           </div>
         )}
 
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-          {[
-            { label: 'TOTAL', value: profiles.length, color: '#3B82F6' },
-            { label: 'ADMIN', value: profiles.filter(p => p.role === 'admin').length, color: '#EF4444' },
-            { label: 'USER', value: profiles.filter(p => p.role === 'user').length, color: '#10B981' },
-          ].map((stat, i) => (
-            <div key={i} style={{
-              background: '#0F172A', border: `3px solid ${stat.color}`,
-              boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)', padding: '16px', textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 'bold', marginBottom: '6px', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</div>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: stat.color, fontFamily: "'Press Start 2P', monospace" }}>{stat.value}</div>
-            </div>
-          ))}
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+          <button onClick={() => setActiveTab('users')} className="cartoon-btn" style={{
+            padding: '12px 24px', background: activeTab === 'users' ? 'var(--color-blue)' : 'var(--color-bg-secondary)',
+            color: activeTab === 'users' ? '#FFFFFF' : 'var(--color-text-secondary)',
+            fontWeight: 'bold', fontSize: '15px',
+          }}>
+            👥 จัดการผู้ใช้
+          </button>
+          <button onClick={() => setActiveTab('lines')} className="cartoon-btn" style={{
+            padding: '12px 24px', background: activeTab === 'lines' ? 'var(--color-purple)' : 'var(--color-bg-secondary)',
+            color: activeTab === 'lines' ? '#FFFFFF' : 'var(--color-text-secondary)',
+            fontWeight: 'bold', fontSize: '15px',
+          }}>
+            🏭 จัดการสายงาน
+          </button>
         </div>
 
-        {/* Users Table */}
-        <div style={PIXEL_CARD_STYLE}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid #334155' }}>
-            <h2 style={{ margin: 0, fontSize: '12px', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace" }}>👥 USERS</h2>
-            <button onClick={() => { setShowCreateModal(true); setMessage(null); resetNewUser() }} style={{
-              padding: '8px 16px', background: 'linear-gradient(90deg, #10B981, #059669)', color: '#000',
-              border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
-              boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
-            }}>
-              ➕ เพิ่มผู้ใช้ใหม่
-            </button>
-          </div>
+        {activeTab === 'users' && (
+          <>
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+              {[
+                { label: 'TOTAL', value: profiles.length, color: 'var(--color-blue)' },
+                { label: 'ADMIN', value: profiles.filter(p => p.role === 'admin').length, color: 'var(--color-amber)' },
+                { label: 'USER', value: profiles.filter(p => p.role === 'user').length, color: 'var(--color-completed)' },
+              ].map((stat, i) => (
+                <div key={i} className="cartoon-card" style={{
+                  textAlign: 'center', padding: '24px', borderTopColor: stat.color, borderTopWidth: '8px'
+                }}>
+                  <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '700', marginBottom: '8px', fontFamily: "'Nunito', sans-serif" }}>{stat.label}</div>
+                  <div className="cartoon-font" style={{ fontSize: '36px', color: stat.color }}>{stat.value}</div>
+                </div>
+              ))}
+            </div>
 
-          {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>⏳ กำลังโหลด...</div>
-          ) : profiles.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>ไม่พบข้อมูลผู้ใช้</div>
-          ) : (
+            {/* Users Table */}
+            <div className="cartoon-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)' }}>
+                <h2 className="cartoon-font" style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-primary)' }}>👥 USERS</h2>
+                <button onClick={() => { setShowCreateModal(true); setMessage(null); resetNewUser() }} className="cartoon-btn" style={{
+                  padding: '10px 20px', background: 'var(--color-completed)', color: '#FFFFFF',
+                  fontSize: '14px',
+                }}>
+                  ➕ เพิ่มผู้ใช้ใหม่
+                </button>
+              </div>
+
+              {loading ? (
+                <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 600 }}>⏳ กำลังโหลด...</div>
+              ) : profiles.length === 0 ? (
+                <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 600 }}>ไม่พบข้อมูลผู้ใช้</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="cartoon-table">
+                    <thead>
+                      <tr>
+                        <th>รหัสพนักงาน</th>
+                        <th>ชื่อ</th>
+                        <th style={{ textAlign: 'center' }}>บทบาท</th>
+                        <th style={{ textAlign: 'center' }}>แผนก</th>
+                        <th style={{ textAlign: 'center' }}>สายงาน</th>
+                        <th style={{ textAlign: 'center' }}>จัดการ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profiles.map(profile => {
+                        const dept = DEPT_CONFIG[profile.department] || DEPT_CONFIG.production
+                        return (
+                          <tr key={profile.id}>
+                            <td style={{ fontWeight: '800', fontFamily: "'Nunito', sans-serif", color: 'var(--color-text-primary)' }}>{profile.employee_code}</td>
+                            <td style={{ fontWeight: '600' }}>{profile.full_name}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className="cartoon-badge" style={{
+                                background: profile.role === 'admin' ? '#FEE2E2' : '#D1FAE5',
+                                color: profile.role === 'admin' ? '#B91C1C' : '#047857',
+                              }}>
+                                {profile.role === 'admin' ? '👑 Admin' : '👤 User'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className="cartoon-badge" style={{
+                                background: `${dept.color}20`, color: dept.color,
+                              }}>
+                                {dept.label}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
+                              {profile.allowed_lines?.length || 0} สาย
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button onClick={() => handleEdit(profile)} className="cartoon-btn" style={{
+                                  padding: '6px 14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)',
+                                  fontSize: '13px',
+                                }}>
+                                  ✏️ แก้ไข
+                                </button>
+                                <button onClick={() => handleOpenReset(profile)} className="cartoon-btn" style={{
+                                  padding: '6px 14px', background: '#FEF3C7', color: '#D97706',
+                                  fontSize: '13px',
+                                }}>
+                                  🔑 รีเซ็ต
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'lines' && (
+          <div className="cartoon-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)' }}>
+              <h2 className="cartoon-font" style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-primary)' }}>🏭 LINES</h2>
+              <button onClick={() => {
+                setEditingLine(null)
+                setNewLine({ id: '', name: '', department: 'production', is_active: true })
+                setShowLineModal(true)
+                setMessage(null)
+              }} className="cartoon-btn" style={{
+                padding: '10px 20px', background: 'var(--color-purple)', color: '#FFFFFF',
+                fontSize: '14px',
+              }}>
+                ➕ เพิ่มสายงาน
+              </button>
+            </div>
+
             <div style={{ overflowX: 'auto' }}>
-              <table className="pixel-table">
+              <table className="cartoon-table">
                 <thead>
                   <tr>
-                    <th>รหัสพนักงาน</th>
-                    <th>ชื่อ</th>
-                    <th style={{ textAlign: 'center' }}>บทบาท</th>
+                    <th>Line ID</th>
+                    <th>ชื่อสายงาน</th>
                     <th style={{ textAlign: 'center' }}>แผนก</th>
-                    <th style={{ textAlign: 'center' }}>สายงาน</th>
+                    <th style={{ textAlign: 'center' }}>สถานะ</th>
                     <th style={{ textAlign: 'center' }}>จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {profiles.map(profile => {
-                    const dept = DEPT_CONFIG[profile.department] || DEPT_CONFIG.production
+                  {ALL_LINES.map(line => {
+                    const dept = DEPT_CONFIG[line.department] || DEPT_CONFIG.production
                     return (
-                      <tr key={profile.id}>
-                        <td style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#F59E0B' }}>{profile.employee_code}</td>
-                        <td>{profile.full_name}</td>
+                      <tr key={line.id} style={{ opacity: line.is_active ? 1 : 0.6 }}>
+                        <td style={{ fontWeight: '800', fontFamily: "'Nunito', sans-serif", color: 'var(--color-text-primary)' }}>{line.id}</td>
+                        <td style={{ fontWeight: '600' }}>{line.name}</td>
                         <td style={{ textAlign: 'center' }}>
-                          <span style={{
-                            padding: '4px 10px', fontSize: '11px', fontWeight: 'bold',
-                            background: profile.role === 'admin' ? '#EF444420' : '#10B98120',
-                            color: profile.role === 'admin' ? '#EF4444' : '#10B981',
-                            border: `1px solid ${profile.role === 'admin' ? '#EF444440' : '#10B98140'}`,
-                          }}>
-                            {profile.role === 'admin' ? '👑 Admin' : '👤 User'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span style={{
-                            padding: '4px 10px', fontSize: '11px', fontWeight: 'bold',
+                          <span className="cartoon-badge" style={{
                             background: `${dept.color}20`, color: dept.color,
-                            border: `1px solid ${dept.color}40`,
                           }}>
                             {dept.label}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
-                          {profile.allowed_lines?.length || 0} สาย
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="cartoon-badge" style={{
+                            background: line.is_active ? '#D1FAE5' : '#FEE2E2',
+                            color: line.is_active ? '#047857' : '#B91C1C',
+                          }}>
+                            {line.is_active ? '✅ ใช้งาน' : '❌ ปิดใช้งาน'}
+                          </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button onClick={() => handleEdit(profile)} style={{
-                            padding: '5px 12px', background: '#1E3A5F', color: '#3B82F6',
-                            border: '2px solid #3B82F640', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
-                            boxShadow: '2px 2px 0 0 rgba(0,0,0,0.2)',
-                          }}>
-                            ✏️ แก้ไข
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button onClick={() => { setEditingLine(line); setShowLineModal(true); setMessage(null) }} className="cartoon-btn" style={{
+                              padding: '6px 14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)',
+                              fontSize: '13px',
+                            }}>
+                              ✏️ แก้ไข
+                            </button>
+                            <button onClick={() => toggleLineStatus(line)} className="cartoon-btn" style={{
+                              padding: '6px 14px', background: line.is_active ? '#FEE2E2' : '#D1FAE5', color: line.is_active ? '#B91C1C' : '#047857',
+                              fontSize: '13px',
+                            }}>
+                              {line.is_active ? 'ปิด' : 'เปิดป'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -343,17 +533,17 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Create User Modal */}
       {showCreateModal && (
-        <div className="pixel-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false) }}>
-          <div className="pixel-modal-content">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '12px', color: '#10B981', fontFamily: "'Press Start 2P', monospace" }}>➕ NEW USER</h2>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}>✕</button>
+        <div className="cartoon-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false) }}>
+          <div className="cartoon-modal-content" style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)' }}>
+              <h2 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-completed)' }}>➕ NEW USER</h2>
+              <button onClick={() => setShowCreateModal(false)} className="cartoon-btn" style={{ background: '#FFFFFF', color: 'var(--color-text-secondary)', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
 
             <div style={{ display: 'grid', gap: '14px' }}>
@@ -394,17 +584,17 @@ export default function AdminPage() {
               <LineSelector selectedLines={newUser.allowed_lines} onToggle={toggleNewLine} onSelectAll={selectNewLines} />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-              <button onClick={() => setShowCreateModal(false)} style={{
-                flex: 1, padding: '12px', background: '#0F172A', color: '#94A3B8',
-                border: '2px solid #334155', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer',
-                boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+              <button onClick={() => setShowCreateModal(false)} className="cartoon-btn" style={{
+                flex: 1, padding: '14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)',
+                fontSize: '15px'
               }}>ยกเลิก</button>
-              <button onClick={handleCreateUser} disabled={saving} style={{
-                flex: 2, padding: '12px',
-                background: saving ? '#475569' : 'linear-gradient(90deg, #10B981, #059669)',
-                color: saving ? '#94A3B8' : '#000', border: 'none', fontSize: '14px', fontWeight: 'bold',
-                cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+              <button onClick={handleCreateUser} disabled={saving} className="cartoon-btn" style={{
+                flex: 2, padding: '14px',
+                background: saving ? 'var(--color-border-accent)' : 'var(--color-completed)',
+                color: '#FFFFFF', fontSize: '15px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : '0 6px 16px rgba(52, 211, 153, 0.4)',
               }}>
                 {saving ? '⏳ กำลังสร้าง...' : '✅ สร้างผู้ใช้'}
               </button>
@@ -415,11 +605,11 @@ export default function AdminPage() {
 
       {/* Edit Modal */}
       {showModal && editingProfile && (
-        <div className="pixel-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="pixel-modal-content">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '12px', color: '#3B82F6', fontFamily: "'Press Start 2P', monospace" }}>✏️ EDIT: {editingProfile.employee_code}</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748B' }}>✕</button>
+        <div className="cartoon-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
+          <div className="cartoon-modal-content" style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)' }}>
+              <h2 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-blue)' }}>✏️ EDIT: {editingProfile.employee_code}</h2>
+              <button onClick={() => setShowModal(false)} className="cartoon-btn" style={{ background: '#FFFFFF', color: 'var(--color-text-secondary)', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
 
             <div style={{ display: 'grid', gap: '14px' }}>
@@ -450,17 +640,123 @@ export default function AdminPage() {
               <LineSelector selectedLines={editingProfile.allowed_lines || []} onToggle={toggleLine} onSelectAll={selectAllLines} />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-              <button onClick={() => setShowModal(false)} style={{
-                flex: 1, padding: '12px', background: '#0F172A', color: '#94A3B8',
-                border: '2px solid #334155', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer',
-                boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+              <button onClick={() => setShowModal(false)} className="cartoon-btn" style={{
+                flex: 1, padding: '14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)',
+                fontSize: '15px'
               }}>ยกเลิก</button>
-              <button onClick={handleSave} disabled={saving} style={{
-                flex: 2, padding: '12px',
-                background: saving ? '#475569' : 'linear-gradient(90deg, #3B82F6, #2563EB)',
-                color: '#fff', border: 'none', fontSize: '14px', fontWeight: 'bold',
-                cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+              <button onClick={handleSave} disabled={saving} className="cartoon-btn" style={{
+                flex: 2, padding: '14px',
+                background: saving ? 'var(--color-border-accent)' : 'var(--color-blue)',
+                color: '#FFFFFF', fontSize: '15px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : '0 6px 16px rgba(59, 130, 246, 0.4)',
+              }}>
+                {saving ? '⏳ กำลังบันทึก...' : '💾 บันทึก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetModal && resettingUser && (
+        <div className="cartoon-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowResetModal(false) }}>
+          <div className="cartoon-modal-content" style={{ padding: '32px', maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)' }}>
+              <h2 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-amber)' }}>🔑 RESET PASSWORD</h2>
+              <button onClick={() => setShowResetModal(false)} className="cartoon-btn" style={{ background: '#FFFFFF', color: 'var(--color-text-secondary)', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ margin: '0 0 16px', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                คุณกำลังเปลี่ยนรหัสผ่านของ <strong>{resettingUser.employee_code}</strong> ({resettingUser.full_name})
+              </p>
+              <label style={LABEL_STYLE}>ตั้งรหัสผ่านใหม่</label>
+              <input type="password" style={INPUT_STYLE} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" />
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+              <button onClick={() => setShowResetModal(false)} className="cartoon-btn" style={{
+                flex: 1, padding: '14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)', fontSize: '15px'
+              }}>ยกเลิก</button>
+              <button onClick={handleResetPassword} disabled={saving} className="cartoon-btn" style={{
+                flex: 2, padding: '14px',
+                background: saving ? 'var(--color-border-accent)' : 'var(--color-amber)',
+                color: '#FFFFFF', fontSize: '15px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : '0 6px 16px rgba(245, 158, 11, 0.4)',
+              }}>
+                {saving ? '⏳ กำลังรีเซ็ต...' : '🔑 ยืนยัน'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Line Modal */}
+      {showLineModal && (
+        <div className="cartoon-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLineModal(false) }}>
+          <div className="cartoon-modal-content" style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)' }}>
+              <h2 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-purple)' }}>
+                {editingLine ? `✏️ EDIT LINE: ${editingLine.id}` : '➕ NEW LINE'}
+              </h2>
+              <button onClick={() => setShowLineModal(false)} className="cartoon-btn" style={{ background: '#FFFFFF', color: 'var(--color-text-secondary)', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: '14px' }}>
+              <div>
+                <label style={LABEL_STYLE}>Line ID *</label>
+                <input
+                  style={{ ...INPUT_STYLE, textTransform: 'uppercase' }}
+                  value={editingLine ? editingLine.id : newLine.id}
+                  onChange={(e) => editingLine ? setEditingLine({ ...editingLine, id: e.target.value.toUpperCase() }) : setNewLine({ ...newLine, id: e.target.value.toUpperCase() })}
+                  placeholder="e.g. LINE-08"
+                  disabled={!!editingLine}
+                />
+              </div>
+              <div>
+                <label style={LABEL_STYLE}>ชื่อสายงาน *</label>
+                <input
+                  style={INPUT_STYLE}
+                  value={editingLine ? editingLine.name : newLine.name}
+                  onChange={(e) => editingLine ? setEditingLine({ ...editingLine, name: e.target.value }) : setNewLine({ ...newLine, name: e.target.value })}
+                  placeholder="e.g. สายการผลิตที่ 8"
+                />
+              </div>
+              <div>
+                <label style={LABEL_STYLE}>แผนก *</label>
+                <select
+                  style={INPUT_STYLE}
+                  value={editingLine ? editingLine.department : newLine.department}
+                  onChange={(e) => editingLine ? setEditingLine({ ...editingLine, department: e.target.value as any }) : setNewLine({ ...newLine, department: e.target.value as any })}
+                >
+                  <option value="production">🏭 Production</option>
+                  <option value="finishing">🔧 Finishing</option>
+                </select>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px', fontWeight: 'bold' }}>
+                <input
+                  type="checkbox"
+                  checked={editingLine ? editingLine.is_active : newLine.is_active}
+                  onChange={(e) => editingLine ? setEditingLine({ ...editingLine, is_active: e.target.checked }) : setNewLine({ ...newLine, is_active: e.target.checked })}
+                />
+                ✅ เปิดใช้งาน
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+              <button onClick={() => setShowLineModal(false)} className="cartoon-btn" style={{
+                flex: 1, padding: '14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)',
+                fontSize: '15px'
+              }}>ยกเลิก</button>
+              <button onClick={handleSaveLine} disabled={saving} className="cartoon-btn" style={{
+                flex: 2, padding: '14px',
+                background: saving ? 'var(--color-border-accent)' : 'var(--color-purple)',
+                color: '#FFFFFF', fontSize: '15px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : '0 6px 16px rgba(139, 92, 246, 0.4)',
               }}>
                 {saving ? '⏳ กำลังบันทึก...' : '💾 บันทึก'}
               </button>

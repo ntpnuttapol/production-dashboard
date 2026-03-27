@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  PRODUCTION_LINES,
-  FINISHING_LINES,
   INPUT_STYLE,
   LABEL_STYLE,
   type PartNumber,
 } from '@/lib/constants'
+import { useLines } from '@/lib/lines-context'
 
 interface PlanningFormData {
   plan_date: string
@@ -33,13 +32,17 @@ interface PlanningFormProps {
 export default function PlanningForm({ onSuccess, editData, defaultDepartment }: PlanningFormProps) {
   const supabase = createClient()
   const today = new Date().toISOString().split('T')[0]
+  const { productionLines, finishingLines } = useLines()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [partNumbers, setPartNumbers] = useState<PartNumber[]>([])
 
   const initialDept = editData?.department || defaultDepartment || 'production'
-  const initialLine = initialDept === 'finishing' ? 'FINISH-01' : 'LINE-01'
+
+  // Set default initial line based on department context
+  const initialCurrentLines = initialDept === 'production' ? productionLines : finishingLines
+  const initialLine = initialCurrentLines.length > 0 ? initialCurrentLines[0].id : ''
 
   const [formData, setFormData] = useState<PlanningFormData>({
     plan_date: editData?.plan_date || today,
@@ -58,24 +61,34 @@ export default function PlanningForm({ onSuccess, editData, defaultDepartment }:
   // Reset form when defaultDepartment changes (new plan only)
   useEffect(() => {
     if (editData || !defaultDepartment) return
-    const newLine = defaultDepartment === 'finishing' ? 'FINISH-01' : 'LINE-01'
+    const currentLines = defaultDepartment === 'production' ? productionLines : finishingLines
+    const newLine = currentLines.length > 0 ? currentLines[0].id : ''
     setFormData(prev => ({ ...prev, department: defaultDepartment, line_id: newLine }))
-  }, [defaultDepartment, editData])
+  }, [defaultDepartment, editData, productionLines, finishingLines])
 
-  // Fetch Part Numbers
+  // Fetch Part Numbers filtered by department
   useEffect(() => {
     const fetchParts = async () => {
-      const { data } = await supabase.from('part_numbers').select('*').eq('is_active', true).order('part_number')
+      // Primary: simple query that always works
+      const { data, error } = await supabase
+        .from('part_numbers')
+        .select('*')
+        .eq('is_active', true)
+        .eq('department', formData.department)
+        .order('part_number')
+      
+      console.log('[PlanningForm] fetchParts:', { dept: formData.department, data: data?.length, error })
       if (data) setPartNumbers(data)
     }
     fetchParts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [formData.department])
 
-  const lineOptions = formData.department === 'production' ? PRODUCTION_LINES : FINISHING_LINES
+  const lineOptions = formData.department === 'production' ? productionLines : finishingLines
 
   const handleDepartmentChange = (dept: 'production' | 'finishing') => {
-    const defaultLine = dept === 'production' ? 'LINE-01' : 'FINISH-01'
+    const currentLines = dept === 'production' ? productionLines : finishingLines
+    const defaultLine = currentLines.length > 0 ? currentLines[0].id : ''
     setFormData(prev => ({ ...prev, department: dept, line_id: defaultLine }))
   }
 
@@ -112,7 +125,7 @@ export default function PlanningForm({ onSuccess, editData, defaultDepartment }:
         setFormData({
           plan_date: today,
           department: 'production',
-          line_id: 'LINE-01',
+          line_id: productionLines.length > 0 ? productionLines[0].id : '',
           part_number_id: null,
           product_name: '',
           lot_number: '',
@@ -168,23 +181,18 @@ export default function PlanningForm({ onSuccess, editData, defaultDepartment }:
           <label style={LABEL_STYLE}>Part Number *</label>
           <select value={formData.part_number_id || ''} onChange={(e) => handlePartChange(e.target.value)} style={INPUT_STYLE} required>
             <option value="">-- เลือก Part Number --</option>
-            {partNumbers.map(part => (
-              <option key={part.id} value={part.id}>{part.part_number} - {part.part_name} (Std: {part.std_qty}/{part.unit})</option>
-            ))}
+            {partNumbers.map(part => {
+              const customerName = Array.isArray(part.customers) ? part.customers[0]?.customer_name : part.customers?.customer_name;
+              return (
+                <option key={part.id} value={part.id}>{part.part_number} - {part.part_name} {customerName ? `(${customerName})` : ''} (Std: {part.std_qty}/{part.unit})</option>
+              )
+            })}
           </select>
           {selectedPart && (
             <div style={{ marginTop: '8px', padding: '8px 12px', background: '#10B98120', border: '1px solid #10B98140', fontSize: '12px', color: '#10B981' }}>
               ⚡ Std: <strong>{selectedPart.std_qty}</strong> {selectedPart.unit}/ชม.
             </div>
           )}
-        </div>
-
-        {/* Line */}
-        <div>
-          <label style={LABEL_STYLE}>สาย *</label>
-          <select value={formData.line_id} onChange={(e) => setFormData(prev => ({ ...prev, line_id: e.target.value }))} style={INPUT_STYLE} required>
-            {lineOptions.map(line => <option key={line.id} value={line.id}>{line.id} - {line.name}</option>)}
-          </select>
         </div>
 
         {/* Target Qty */}

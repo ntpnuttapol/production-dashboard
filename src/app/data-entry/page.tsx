@@ -64,38 +64,38 @@ export default function DataEntryPage() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)', paddingBottom: '40px' }}>
       <Navbar />
-      <div className="pixel-container" style={{ maxWidth: '700px' }}>
+      <div className="cartoon-container" style={{ maxWidth: '700px' }}>
         {/* Page Title */}
-        <div className="pixel-page-title">
+        <div className="cartoon-page-title">
           <div>
-            <h1 style={{ margin: 0, fontSize: '14px', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace" }}>
+            <h1 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-running)' }}>
               📝 DATA ENTRY
             </h1>
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B' }}>บันทึกข้อมูล Order ใหม่</p>
+            <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>บันทึกข้อมูล Order ใหม่</p>
           </div>
         </div>
 
         {/* Success Message */}
         {success && (
-          <div style={{
-            ...PIXEL_CARD_STYLE,
-            border: '3px solid #10B981',
+          <div className="cartoon-card" style={{
+            border: '3px solid var(--color-green)',
             textAlign: 'center',
-            marginBottom: '20px',
+            marginBottom: '24px',
+            background: '#D1FAE5'
           }}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>🎉</div>
-            <div style={{ color: '#10B981', fontWeight: 'bold', fontSize: '14px', fontFamily: "'Press Start 2P', monospace" }}>ORDER SAVED!</div>
-            <div style={{ color: '#64748B', fontSize: '13px', marginTop: '8px' }}>Redirecting to dashboard...</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px', animation: 'float 2s infinite ease-in-out' }}>🎉</div>
+            <div className="cartoon-font" style={{ color: '#047857', fontSize: '20px' }}>ORDER SAVED!</div>
+            <div style={{ color: '#065F46', fontSize: '15px', marginTop: '8px', fontWeight: 600 }}>Redirecting to dashboard...</div>
           </div>
         )}
 
         {/* Form */}
         {!success && (
-          <div style={PIXEL_CARD_STYLE}>
+          <div className="cartoon-card" style={{ padding: '32px', background: 'var(--color-bg-card)' }}>
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{ display: 'grid', gap: '24px' }}>
                 {/* Order Number */}
                 <div>
                   <label style={LABEL_STYLE}>📋 Order Number</label>
@@ -112,14 +112,12 @@ export default function DataEntryPage() {
                     <button
                       type="button"
                       onClick={generateOrderNumber}
+                      className="cartoon-btn"
                       style={{
-                        padding: '10px 14px',
-                        background: '#3B82F6',
+                        padding: '12px 16px',
+                        background: 'var(--color-blue)',
                         color: '#fff',
-                        border: 'none',
-                        fontSize: '16px',
-                        cursor: 'pointer',
-                        boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
+                        fontSize: '18px',
                       }}
                     >
                       🎲
@@ -175,14 +173,15 @@ export default function DataEntryPage() {
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, status: status.value }))}
                           style={{
-                            padding: '10px',
-                            fontWeight: 'bold',
-                            fontSize: '12px',
+                            padding: '12px',
+                            fontWeight: '700',
+                            fontSize: '14px',
                             cursor: 'pointer',
-                            background: selected ? `${status.color}20` : 'transparent',
-                            color: selected ? status.color : '#64748B',
-                            border: `2px solid ${selected ? status.color : '#334155'}`,
-                            boxShadow: selected ? '2px 2px 0 0 rgba(0,0,0,0.2)' : 'none',
+                            background: selected ? `${status.color}20` : 'var(--color-bg-input)',
+                            color: selected ? status.color : 'var(--color-text-secondary)',
+                            border: `2px solid ${selected ? status.color : 'var(--color-border)'}`,
+                            borderRadius: '12px',
+                            transition: 'all 0.2s ease',
                           }}
                         >
                           {status.label}
@@ -215,17 +214,16 @@ export default function DataEntryPage() {
                 <button
                   type="submit"
                   disabled={loading}
+                  className="cartoon-btn"
                   style={{
                     width: '100%',
                     padding: '16px',
-                    background: loading ? '#475569' : 'linear-gradient(90deg, #10B981, #059669)',
-                    color: loading ? '#94A3B8' : '#000',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
+                    background: loading ? 'var(--color-border-accent)' : 'var(--color-green)',
+                    color: '#FFFFFF',
+                    fontSize: '16px',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    fontFamily: "'Press Start 2P', monospace",
-                    boxShadow: loading ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)',
+                    boxShadow: loading ? 'none' : '0 6px 16px rgba(34, 197, 94, 0.4)',
+                    marginTop: '8px'
                   }}
                 >
                   {loading ? '⏳ SAVING...' : '💾 SAVE ORDER'}

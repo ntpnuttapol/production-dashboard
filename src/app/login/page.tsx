@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 
 export default function LoginPage() {
@@ -9,8 +9,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ssoLoading, setSsoLoading] = useState(false)
   const router = useRouter()
-  const { login } = useAuth()
+  const searchParams = useSearchParams()
+  const { login, loginWithSso } = useAuth()
+
+  // Handle SSO token from Hub
+  useEffect(() => {
+    const ssoToken = searchParams.get('sso_token')
+    if (ssoToken) {
+      setSsoLoading(true)
+      loginWithSso(ssoToken)
+        .then((result) => {
+          if (result.error) {
+            setError(result.error)
+            setSsoLoading(false)
+          } else {
+            router.push('/')
+          }
+        })
+        .catch((err) => {
+          console.error('SSO login failed:', err)
+          setError('SSO login failed - please try manual login')
+          setSsoLoading(false)
+        })
+    }
+  }, [searchParams, router, loginWithSso])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,64 +58,91 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)',
+      background: 'var(--color-bg-primary)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: '24px',
     }}>
       <div style={{
         width: '100%',
         maxWidth: '420px',
       }}>
         {/* Logo Section */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏭</div>
-          <h1 style={{
-            fontFamily: "'Press Start 2P', monospace",
-            fontSize: '16px',
-            background: 'linear-gradient(90deg, #F59E0B, #10B981)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ fontSize: '56px', marginBottom: '16px', animation: 'float 3s ease-in-out infinite' }}>🏭</div>
+          <h1 className="cartoon-font" style={{
+            fontSize: '28px',
+            color: 'var(--color-text-primary)',
             margin: '0 0 8px',
           }}>
             PRODUCTION
           </h1>
           <p style={{
-            fontFamily: "'Press Start 2P', monospace",
-            fontSize: '9px',
-            color: '#64748B',
+            fontFamily: "'Nunito', sans-serif",
+            fontSize: '14px',
+            fontWeight: '700',
+            color: 'var(--color-text-secondary)',
             margin: 0,
+            letterSpacing: '1px',
           }}>
             FINISHING DASHBOARD
           </p>
         </div>
 
-        {/* Login Card */}
-        <div style={{
-          background: '#1E293B',
-          border: '3px solid #334155',
-          boxShadow: '6px 6px 0 0 rgba(0,0,0,0.5)',
-          padding: '28px',
-        }}>
-          <h2 style={{
-            fontFamily: "'Press Start 2P', monospace",
-            fontSize: '11px',
-            color: '#F59E0B',
+        {/* SSO Loading State */}
+        {ssoLoading && (
+          <div className="cartoon-card" style={{ padding: '32px', textAlign: 'center' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid var(--color-border)',
+              borderTop: '3px solid var(--color-blue)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px'
+            }} />
+            <p style={{
+              fontSize: '16px',
+              fontWeight: '700',
+              color: 'var(--color-text-primary)',
+              marginBottom: '8px'
+            }}>
+              🔐 กำลังเข้าสู่ระบบผ่าน Hub...
+            </p>
+            <p style={{
+              fontSize: '13px',
+              color: 'var(--color-text-secondary)'
+            }}>
+              SSO Authenticating
+            </p>
+          </div>
+        )}
+
+        {/* Login Card - hidden during SSO loading */}
+        {!ssoLoading && (
+          <div className="cartoon-card" style={{ padding: '32px' }}>
+          <h2 className="cartoon-font" style={{
+            fontSize: '20px',
+            color: 'var(--color-blue)',
             margin: '0 0 24px',
             textAlign: 'center',
+            borderBottom: '2px dashed var(--color-border)',
+            paddingBottom: '16px'
           }}>
             🔐 LOGIN
           </h2>
 
           {error && (
             <div style={{
-              padding: '12px',
-              background: '#7F1D1D',
-              border: '2px solid #EF4444',
-              color: '#FCA5A5',
-              marginBottom: '16px',
-              fontSize: '13px',
+              padding: '14px',
+              background: '#FEE2E2',
+              border: '2px solid #F87171',
+              borderRadius: '16px',
+              color: '#B91C1C',
+              marginBottom: '20px',
+              fontSize: '14px',
+              fontWeight: '700',
               textAlign: 'center',
             }}>
               ⚠️ {error}
@@ -99,15 +150,14 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '20px' }}>
               <label style={{
                 display: 'block',
-                fontSize: '12px',
-                fontWeight: '600',
-                color: '#F59E0B',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
+                fontSize: '13px',
+                fontWeight: '700',
+                color: 'var(--color-text-secondary)',
+                marginBottom: '8px',
+                fontFamily: "'Nunito', sans-serif"
               }}>
                 🪪 รหัสพนักงาน
               </label>
@@ -119,29 +169,30 @@ export default function LoginPage() {
                 required
                 style={{
                   width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '16px',
-                  border: '2px solid #334155',
-                  background: '#0F172A',
-                  color: '#F1F5F9',
+                  padding: '14px 16px',
+                  fontSize: '15px',
+                  border: '2px solid var(--color-border)',
+                  background: 'var(--color-bg-input)',
+                  color: 'var(--color-text-primary)',
                   outline: 'none',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
+                  borderRadius: '16px',
+                  fontFamily: "'Nunito', 'Kanit', sans-serif",
+                  fontWeight: '600',
                   textTransform: 'uppercase',
                   boxSizing: 'border-box',
+                  transition: 'all 0.2s ease',
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '32px' }}>
               <label style={{
                 display: 'block',
-                fontSize: '12px',
-                fontWeight: '600',
-                color: '#F59E0B',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
+                fontSize: '13px',
+                fontWeight: '700',
+                color: 'var(--color-text-secondary)',
+                marginBottom: '8px',
+                fontFamily: "'Nunito', sans-serif"
               }}>
                 🔒 รหัสผ่าน
               </label>
@@ -153,14 +204,17 @@ export default function LoginPage() {
                 required
                 style={{
                   width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '16px',
-                  border: '2px solid #334155',
-                  background: '#0F172A',
-                  color: '#F1F5F9',
+                  padding: '14px 16px',
+                  fontSize: '15px',
+                  border: '2px solid var(--color-border)',
+                  background: 'var(--color-bg-input)',
+                  color: 'var(--color-text-primary)',
                   outline: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '16px',
+                  fontFamily: "'Nunito', 'Kanit', sans-serif",
+                  fontWeight: '600',
                   boxSizing: 'border-box',
+                  transition: 'all 0.2s ease',
                 }}
               />
             </div>
@@ -168,45 +222,22 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
+              className="cartoon-btn"
               style={{
                 width: '100%',
-                padding: '14px',
-                background: loading
-                  ? '#475569'
-                  : 'linear-gradient(90deg, #F59E0B, #10B981)',
-                color: loading ? '#94A3B8' : '#000',
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: 'bold',
+                padding: '16px',
+                background: loading ? 'var(--color-border-accent)' : 'var(--color-completed)',
+                color: '#FFFFFF',
+                fontSize: '16px',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                fontFamily: "'Press Start 2P', monospace",
-                boxShadow: loading ? 'none' : '4px 4px 0 0 rgba(0,0,0,0.3)',
+                boxShadow: loading ? 'none' : '0 6px 16px rgba(52, 211, 153, 0.4)',
               }}
             >
               {loading ? '⏳ LOADING...' : '▶ ENTER'}
             </button>
           </form>
-
-          {/* Pixel art decorative bottom */}
-          <div style={{
-            marginTop: '24px',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '3px',
-          }}>
-            {Array.from({ length: 15 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  background: i % 3 === 0 ? '#F59E0B' : i % 3 === 1 ? '#10B981' : '#3B82F6',
-                  opacity: 0.5,
-                }}
-              />
-            ))}
-          </div>
         </div>
+        )}
       </div>
     </div>
   )

@@ -10,8 +10,8 @@ const NAV_ITEMS = [
     { href: '/production', label: 'Produce', icon: '📝', color: '#F59E0B' },
     { href: '/finishing', label: 'Finish', icon: '🔧', color: '#8B5CF6' },
     { href: '/analytics', label: 'Analytics', icon: '📊', color: '#3B82F6' },
-    { href: '/planning', label: 'Plan', icon: '📋', color: '#06B6D4' },
     { href: '/parts', label: 'Parts', icon: '📦', color: '#22C55E' },
+    { href: '/customers', label: 'Customers', icon: '👥', color: '#10B981' },
 ]
 
 const ADMIN_ITEM = { href: '/admin', label: 'Admin', icon: '⚙️', color: '#EF4444' }
@@ -31,9 +31,8 @@ export default function Navbar() {
     return (
         <>
             <nav style={{
-                background: '#0B1120',
-                borderBottom: '3px solid #1E3A5F',
-                boxShadow: '0 4px 0 0 rgba(0,0,0,0.3)',
+                background: 'var(--color-bg-primary)',
+                borderBottom: '2px dashed var(--color-border)',
                 position: 'sticky',
                 top: 0,
                 zIndex: 1000,
@@ -41,22 +40,19 @@ export default function Navbar() {
                 <div style={{
                     maxWidth: '1400px',
                     margin: '0 auto',
-                    padding: '0 20px',
+                    padding: '0 24px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    height: '56px',
+                    height: '64px',
                 }}>
                     {/* Logo */}
-                    <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>🏭</span>
-                        <span style={{
-                            fontFamily: "'Press Start 2P', monospace",
-                            fontSize: '11px',
-                            background: 'linear-gradient(90deg, #F59E0B, #10B981)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            letterSpacing: '1px',
+                    <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '24px', animation: 'float 3s infinite ease-in-out' }}>🏭</span>
+                        <span className="cartoon-font" style={{
+                            fontSize: '18px',
+                            color: 'var(--color-blue)',
+                            letterSpacing: '0.5px',
                         }}>
                             PRODUCTION
                         </span>
@@ -68,6 +64,28 @@ export default function Navbar() {
                         alignItems: 'center',
                         gap: '4px',
                     }} className="desktop-nav">
+                        {/* Portal Home */}
+                        <a
+                            href="http://localhost:8888"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '10px 16px',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                fontWeight: 700,
+                                color: '#818CF8',
+                                background: 'rgba(129, 140, 248, 0.1)',
+                                borderBottom: '3px solid #818CF8',
+                                borderRadius: '12px 12px 0 0',
+                                transition: 'all 0.2s ease',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            <span style={{ fontSize: '18px' }}>🏠</span>
+                            Portal
+                        </a>
                         {allItems.map(item => {
                             const isActive = pathname === item.href
                             return (
@@ -77,20 +95,20 @@ export default function Navbar() {
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '5px',
-                                        padding: '8px 12px',
+                                        gap: '8px',
+                                        padding: '10px 16px',
                                         textDecoration: 'none',
-                                        fontSize: '12px',
-                                        fontWeight: isActive ? '700' : '500',
-                                        color: isActive ? item.color : '#94A3B8',
-                                        background: isActive ? `${item.color}15` : 'transparent',
-                                        borderBottom: isActive ? `2px solid ${item.color}` : '2px solid transparent',
-                                        borderRadius: '4px 4px 0 0',
-                                        transition: 'all 0.15s',
+                                        fontSize: '14px',
+                                        fontWeight: 700,
+                                        color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                                        background: isActive ? `${item.color}20` : 'transparent',
+                                        borderBottom: isActive ? `3px solid ${item.color}` : '3px solid transparent',
+                                        borderRadius: '12px 12px 0 0',
+                                        transition: 'all 0.2s ease',
                                         whiteSpace: 'nowrap',
                                     }}
                                 >
-                                    <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                                    <span style={{ fontSize: '18px' }}>{item.icon}</span>
                                     {item.label}
                                 </Link>
                             )
@@ -103,32 +121,35 @@ export default function Navbar() {
                         {user && (
                             <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#F1F5F9' }}>{user.fullName}</div>
-                                    <div style={{ fontSize: '10px', color: '#64748B' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-text-primary)' }}>{user.fullName}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
                                         {user.role === 'admin' ? '👑 Admin' : user.department === 'production' ? '🏭 Prod' : '🔧 Fin'}
                                         {' · '}{user.employeeId}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleLogout}
-                                    style={{
-                                        padding: '6px 12px',
-                                        background: '#1C1917',
-                                        color: '#EF4444',
-                                        border: '2px solid #7F1D1D',
-                                        borderRadius: '4px',
-                                        fontSize: '11px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer',
-                                        boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                    }}
-                                    title="Logout"
-                                >
-                                    🚪 ออกระบบ
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <Link href="/change-password" title="เปลี่ยนรหัสผ่าน" className="cartoon-btn" style={{
+                                        padding: '8px 16px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}>
+                                        🔑 รหัสผ่าน
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="cartoon-btn"
+                                        style={{
+                                            padding: '8px 16px',
+                                            background: '#FEE2E2',
+                                            color: '#EF4444',
+                                            fontSize: '13px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                        }}
+                                        title="Logout"
+                                    >
+                                        🚪 ออกระบบ
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -155,11 +176,32 @@ export default function Navbar() {
                 {/* Mobile Menu Dropdown */}
                 {menuOpen && (
                     <div className="mobile-dropdown" style={{
-                        borderTop: '2px solid #1E3A5F',
-                        background: '#0B1120',
-                        padding: '8px 16px 16px',
+                        borderTop: '2px dashed var(--color-border)',
+                        background: 'var(--color-bg-primary)',
+                        padding: '12px 20px 20px',
                         animation: 'slideDown 0.2s ease-out',
                     }}>
+                        {/* Portal Home (Mobile) */}
+                        <a
+                            href="http://localhost:8888"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '16px',
+                                textDecoration: 'none',
+                                fontSize: '15px',
+                                fontWeight: 800,
+                                color: '#818CF8',
+                                background: 'rgba(129, 140, 248, 0.1)',
+                                borderLeft: '4px solid #818CF8',
+                                borderRadius: '0 12px 12px 0',
+                                marginBottom: '8px',
+                            }}
+                        >
+                            <span style={{ fontSize: '20px' }}>🏠</span>
+                            Portal Home
+                        </a>
                         {allItems.map(item => {
                             const isActive = pathname === item.href
                             return (
@@ -170,53 +212,57 @@ export default function Navbar() {
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '8px',
-                                        padding: '12px',
+                                        gap: '12px',
+                                        padding: '16px',
                                         textDecoration: 'none',
-                                        fontSize: '13px',
-                                        fontWeight: isActive ? '700' : '500',
-                                        color: isActive ? item.color : '#94A3B8',
-                                        background: isActive ? `${item.color}15` : 'transparent',
-                                        borderLeft: isActive ? `3px solid ${item.color}` : '3px solid transparent',
-                                        borderRadius: '0 4px 4px 0',
+                                        fontSize: '15px',
+                                        fontWeight: isActive ? '800' : '600',
+                                        color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                                        background: isActive ? `${item.color}20` : 'transparent',
+                                        borderLeft: isActive ? `4px solid ${item.color}` : '4px solid transparent',
+                                        borderRadius: '0 12px 12px 0',
                                     }}
                                 >
-                                    <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                                    <span style={{ fontSize: '20px' }}>{item.icon}</span>
                                     {item.label}
                                 </Link>
                             )
                         })}
                         {user && (
                             <div style={{
-                                marginTop: '12px',
-                                paddingTop: '12px',
-                                borderTop: '2px solid #1E3A5F',
+                                marginTop: '16px',
+                                paddingTop: '16px',
+                                borderTop: '2px dashed var(--color-border)',
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                             }}>
                                 <div>
-                                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#F1F5F9' }}>{user.fullName}</div>
-                                    <div style={{ fontSize: '10px', color: '#64748B' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-text-primary)' }}>{user.fullName}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
                                         {user.role === 'admin' ? '👑 Admin' : user.department === 'production' ? '🏭 Prod' : '🔧 Fin'}
                                         {' · '}{user.employeeId}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleLogout}
-                                    style={{
-                                        padding: '8px 14px',
-                                        background: '#1C1917',
-                                        color: '#EF4444',
-                                        border: '2px solid #7F1D1D',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    🚪 ออก
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <Link href="/change-password" onClick={() => setMenuOpen(false)} className="cartoon-btn" style={{
+                                        padding: '8px 14px', background: 'var(--color-bg-input)', color: 'var(--color-text-secondary)', fontSize: '13px'
+                                    }}>
+                                        🔑 รหัสผ่าน
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="cartoon-btn"
+                                        style={{
+                                            padding: '8px 14px',
+                                            background: '#FEE2E2',
+                                            color: '#EF4444',
+                                            fontSize: '13px',
+                                        }}
+                                    >
+                                        🚪 ออก
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

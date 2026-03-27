@@ -50,22 +50,19 @@ export default function StatusBadge({ status, statusTh, showFireworks = false }:
 
   return (
     <div className="relative inline-flex items-center">
-      <div 
+      <div
         className={`
-          px-4 py-2 font-bold text-slate-900 text-sm
+          px-4 py-2 font-bold text-white text-sm rounded-full
           ${config.color}
           ${status === 'working' ? 'status-working' : ''}
           ${config.glow ? `shadow-lg ${config.glow}` : ''}
-          border-2 border-black/20
+          border-2 border-black/10
         `}
-        style={{
-          boxShadow: '3px 3px 0 0 rgba(0,0,0,0.3)',
-        }}
       >
         <span className="mr-2">{config.emoji}</span>
-        <span className="pixel-font text-xs">{statusTh || config.textTh}</span>
+        <span className="cartoon-font text-sm">{statusTh || config.textTh}</span>
       </div>
-      
+
       {status === 'completed' && (
         <Fireworks trigger={triggerFireworks} onComplete={() => setTriggerFireworks(false)} />
       )}

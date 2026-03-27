@@ -21,68 +21,63 @@ export function PixelBarChart({ lines }: { lines: LineData[] }) {
   const maxValue = Math.max(...activeLines.map(l => l.target), 1)
 
   return (
-    <div style={{
-      background: '#1E293B',
-      border: '3px solid #334155',
-      boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)',
-      padding: '20px',
-    }}>
+    <div className="cartoon-card" style={{ padding: '24px' }}>
       {/* Title */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace" }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="cartoon-font" style={{ fontSize: '16px', color: 'var(--color-running)' }}>
           📊 OUTPUT / LINE
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <div style={{ width: '10px', height: '10px', background: '#3B82F6' }} />
-            <span style={{ fontSize: '10px', color: '#94A3B8' }}>ผลิตจริง</span>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '12px', height: '12px', background: 'var(--color-blue)', borderRadius: '40%' }} />
+            <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>ผลิตจริง</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <div style={{ width: '10px', height: '10px', background: '#334155', border: '1px solid #475569' }} />
-            <span style={{ fontSize: '10px', color: '#94A3B8' }}>เป้าหมาย</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '12px', height: '12px', background: 'var(--color-bg-primary)', border: '2px solid var(--color-border)', borderRadius: '40%' }} />
+            <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>เป้าหมาย</span>
           </div>
         </div>
       </div>
 
       {/* Chart Area */}
       {activeLines.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#475569', fontSize: '10px', fontFamily: "'Press Start 2P', monospace" }}>
+        <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 600 }}>
           NO DATA TODAY
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {activeLines.map((line) => {
             const targetWidth = (line.target / maxValue) * 100
             const currentWidth = (line.current / maxValue) * 100
             const pct = line.target > 0 ? Math.round((line.current / line.target) * 100) : 0
-            const barColor = line.type === 'production' ? '#F59E0B' : '#8B5CF6'
-            const pctColor = pct >= 100 ? '#10B981' : pct >= 70 ? '#3B82F6' : '#EF4444'
+            const barColor = line.type === 'production' ? 'var(--color-running)' : 'var(--color-purple)'
+            const pctColor = pct >= 100 ? 'var(--color-green)' : pct >= 70 ? 'var(--color-blue)' : 'var(--color-red)'
 
             return (
               <div key={line.id}>
                 {/* Line label */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '9px', color: '#94A3B8', fontFamily: "'Press Start 2P', monospace", letterSpacing: '-0.5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span className="cartoon-font" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
                     {line.id}
                   </span>
-                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: pctColor, fontFamily: 'monospace' }}>
+                  <span className="cartoon-font" style={{ fontSize: '14px', color: pctColor }}>
                     {line.current.toLocaleString()} / {line.target.toLocaleString()} ({pct}%)
                   </span>
                 </div>
-                {/* Pixel bar */}
-                <div style={{ position: 'relative', height: '18px', background: '#0F172A', border: '2px solid #334155' }}>
+                {/* Cartoon bar */}
+                <div style={{ position: 'relative', height: '24px', background: 'var(--color-bg-primary)', border: '2px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' }}>
                   {/* Target ghost bar */}
                   <div style={{
                     position: 'absolute', top: 0, left: 0, height: '100%',
-                    width: `${targetWidth}%`, background: '#1E293B', borderRight: '2px dashed #475569',
+                    width: `${targetWidth}%`, background: 'var(--color-bg-input)', borderRight: '2px dashed var(--color-border)',
                   }} />
-                  {/* Actual bar - pixel blocks */}
+                  {/* Actual bar */}
                   <div style={{
                     position: 'absolute', top: 0, left: 0, height: '100%',
                     width: `${Math.min(currentWidth, 100)}%`,
-                    background: `repeating-linear-gradient(90deg, ${barColor} 0px, ${barColor} 6px, ${barColor}CC 6px, ${barColor}CC 8px)`,
+                    background: barColor,
                     transition: 'width 0.5s ease',
-                    imageRendering: 'pixelated',
+                    borderRadius: '10px 0 0 10px'
                   }} />
                 </div>
               </div>
@@ -113,22 +108,17 @@ export function PixelDeptChart({ lines }: { lines: LineData[] }) {
   }, [lines])
 
   return (
-    <div style={{
-      background: '#1E293B',
-      border: '3px solid #334155',
-      boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)',
-      padding: '20px',
-    }}>
-      <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace", marginBottom: '16px' }}>
+    <div className="cartoon-card" style={{ padding: '24px' }}>
+      <div className="cartoon-font" style={{ fontSize: '16px', color: 'var(--color-running)', marginBottom: '20px' }}>
         🏭 DEPT COMPARISON
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px' }}>
         {/* Production */}
         <DeptBlock
           label="PRODUCTION"
           icon="🏭"
-          color="#F59E0B"
+          color="var(--color-running)"
           output={stats.prodOutput}
           target={stats.prodTarget}
           rate={stats.prodRate}
@@ -139,7 +129,7 @@ export function PixelDeptChart({ lines }: { lines: LineData[] }) {
         <DeptBlock
           label="FINISHING"
           icon="🔧"
-          color="#8B5CF6"
+          color="var(--color-purple)"
           output={stats.finOutput}
           target={stats.finTarget}
           rate={stats.finRate}
@@ -157,57 +147,52 @@ function DeptBlock({ label, icon, color, output, target, rate, running, total }:
   running: number; total: number
 }) {
   return (
-    <div style={{ background: '#0F172A', border: `2px solid ${color}`, padding: '14px', position: 'relative', overflow: 'hidden' }}>
-      {/* Pixel grid background */}
-      <div style={{
-        position: 'absolute', inset: 0, opacity: 0.04,
-        backgroundImage: `linear-gradient(${color} 1px, transparent 1px), linear-gradient(90deg, ${color} 1px, transparent 1px)`,
-        backgroundSize: '8px 8px',
-      }} />
+    <div style={{ background: 'var(--color-bg-primary)', border: `2px solid ${color}`, borderRadius: '16px', padding: '16px', position: 'relative', overflow: 'hidden' }}>
 
       <div style={{ position: 'relative' }}>
-        <div style={{ fontSize: '9px', fontWeight: 'bold', color, fontFamily: "'Press Start 2P', monospace", marginBottom: '10px' }}>
+        <div className="cartoon-font" style={{ fontSize: '12px', color, marginBottom: '12px' }}>
           {icon} {label}
         </div>
 
         {/* Big rate number */}
-        <div style={{ fontSize: '28px', fontWeight: 'bold', color, fontFamily: "'Press Start 2P', monospace", lineHeight: 1, marginBottom: '8px' }}>
+        <div className="cartoon-font" style={{ fontSize: '32px', color, lineHeight: 1, marginBottom: '12px' }}>
           {rate}%
         </div>
 
         {/* Output bar */}
-        <div style={{ height: '10px', background: '#1E293B', border: `1px solid ${color}44`, marginBottom: '10px' }}>
+        <div style={{ height: '14px', background: 'var(--color-bg-input)', border: `1px solid var(--color-border)`, borderRadius: '7px', marginBottom: '16px', overflow: 'hidden' }}>
           <div style={{
             height: '100%',
             width: `${Math.min(rate, 100)}%`,
-            background: `repeating-linear-gradient(90deg, ${color} 0px, ${color} 4px, ${color}88 4px, ${color}88 6px)`,
+            background: color,
             transition: 'width 0.5s ease',
+            borderRadius: '6px 0 0 6px'
           }} />
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <div>
-            <div style={{ fontSize: '9px', color: '#64748B' }}>OUTPUT</div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#F1F5F9', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>OUTPUT</div>
+            <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text-primary)' }}>
               {output.toLocaleString()}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '9px', color: '#64748B' }}>TARGET</div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#94A3B8', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>TARGET</div>
+            <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text-secondary)' }}>
               {target.toLocaleString()}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '9px', color: '#64748B' }}>ACTIVE</div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#10B981', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>ACTIVE</div>
+            <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-green)' }}>
               {running}/{total}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '9px', color: '#64748B' }}>REMAIN</div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#EF4444', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>REMAIN</div>
+            <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-red)' }}>
               {Math.max(target - output, 0).toLocaleString()}
             </div>
           </div>
@@ -222,61 +207,57 @@ export function PixelEfficiencyBoard({ lines }: { lines: LineData[] }) {
   const activeLines = lines.filter(l => l.status !== 'idle')
 
   return (
-    <div style={{
-      background: '#1E293B',
-      border: '3px solid #334155',
-      boxShadow: '4px 4px 0 0 rgba(0,0,0,0.4)',
-      padding: '20px',
-    }}>
-      <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#F59E0B', fontFamily: "'Press Start 2P', monospace", marginBottom: '16px' }}>
+    <div className="cartoon-card" style={{ padding: '24px' }}>
+      <div className="cartoon-font" style={{ fontSize: '16px', color: 'var(--color-running)', marginBottom: '20px' }}>
         ⚡ EFFICIENCY BOARD
       </div>
 
       {activeLines.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '30px 0', color: '#475569', fontSize: '10px', fontFamily: "'Press Start 2P', monospace" }}>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-secondary)', fontSize: '14px', fontWeight: 600 }}>
           NO ACTIVE LINES
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
           {activeLines.map(line => {
             const pct = line.target > 0 ? Math.round((line.current / line.target) * 100) : 0
-            const color = pct >= 100 ? '#10B981' : pct >= 80 ? '#3B82F6' : pct >= 50 ? '#F59E0B' : '#EF4444'
-            const typeColor = line.type === 'production' ? '#F59E0B' : '#8B5CF6'
+            const color = pct >= 100 ? 'var(--color-green)' : pct >= 80 ? 'var(--color-blue)' : pct >= 50 ? 'var(--color-running)' : 'var(--color-red)'
+            const typeColor = line.type === 'production' ? 'var(--color-running)' : 'var(--color-purple)'
 
-            // Pixel art progress blocks (10 blocks)
+            // Cartoon progress blocks (10 blocks)
             const filledBlocks = Math.min(Math.round(pct / 10), 10)
 
             return (
               <div key={line.id} style={{
-                background: '#0F172A',
-                border: `2px solid ${color}44`,
-                padding: '10px',
+                background: 'var(--color-bg-primary)',
+                border: `2px solid ${color}40`,
+                borderRadius: '16px',
+                padding: '14px',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '8px', color: typeColor, fontFamily: "'Press Start 2P', monospace" }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span className="cartoon-font" style={{ fontSize: '12px', color: typeColor }}>
                     {line.id}
                   </span>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', color, fontFamily: "'Press Start 2P', monospace" }}>
+                  <span className="cartoon-font" style={{ fontSize: '16px', color }}>
                     {pct}%
                   </span>
                 </div>
 
-                {/* Pixel blocks */}
-                <div style={{ display: 'flex', gap: '2px', marginBottom: '6px' }}>
+                {/* Progress blocks */}
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
                   {Array.from({ length: 10 }).map((_, i) => (
                     <div
                       key={i}
                       style={{
                         flex: 1,
-                        height: '8px',
-                        background: i < filledBlocks ? color : '#1E293B',
-                        border: `1px solid ${i < filledBlocks ? color : '#334155'}`,
+                        height: '10px',
+                        background: i < filledBlocks ? color : 'var(--color-bg-input)',
+                        borderRadius: '4px'
                       }}
                     />
                   ))}
                 </div>
 
-                <div style={{ fontSize: '10px', color: '#64748B', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', textAlign: 'center', fontWeight: 700 }}>
                   {line.current.toLocaleString()} / {line.target.toLocaleString()}
                 </div>
               </div>
