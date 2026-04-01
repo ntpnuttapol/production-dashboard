@@ -177,7 +177,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canAccessLine = (lineId: string): boolean => {
     if (!user) return false
     if (user.role === 'admin') return true
-    return user.allowedLines.includes(lineId)
+
+    if (user.allowedLines.includes(lineId)) {
+      return true
+    }
+
+    // Fallback for users whose profile has department access
+    // but no explicit line mapping yet.
+    if (user.allowedLines.length === 0) {
+      if (user.department === 'all') {
+        return true
+      }
+
+      if (user.department === 'production') {
+        return lineId.startsWith('LINE-')
+      }
+
+      if (user.department === 'finishing') {
+        return lineId.startsWith('FINISH-')
+      }
+    }
+
+    return false
   }
 
   const isAdmin = user?.role === 'admin'
