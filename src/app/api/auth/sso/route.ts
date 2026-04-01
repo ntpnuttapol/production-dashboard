@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getHubUrl } from '@/lib/public-env'
 
 const DEFAULT_HUB_ORIGINS = [
-  process.env.NEXT_PUBLIC_HUB_URL,
+  getHubUrl(),
   'https://polyfoampfs-hub.vercel.app',
   'https://pfs-portal.vercel.app',
   'http://localhost:3000',
@@ -28,7 +29,7 @@ function resolveHubValidateUrl(hubOrigin?: string | null) {
   const requestedOrigin = normalizeOrigin(hubOrigin)
   const origin = requestedOrigin && allowedOrigins.has(requestedOrigin)
     ? requestedOrigin
-    : normalizeOrigin(process.env.NEXT_PUBLIC_HUB_URL) || 'https://polyfoampfs-hub.vercel.app'
+    : normalizeOrigin(getHubUrl()) || 'https://polyfoampfs-hub.vercel.app'
 
   return `${origin}/api/sso/validate`
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { getHubUrl } from '@/lib/public-env'
 
 const NAV_ITEMS = [
     { href: '/', label: 'Dashboard', icon: '🖥️', color: '#F59E0B' },
@@ -20,6 +21,7 @@ export default function Navbar() {
     const pathname = usePathname()
     const { user, isAdmin, logout } = useAuth()
     const [menuOpen, setMenuOpen] = useState(false)
+    const portalHomeUrl = getHubUrl()
 
     const handleLogout = async () => {
         await logout()
@@ -66,7 +68,7 @@ export default function Navbar() {
                     }} className="desktop-nav">
                         {/* Portal Home */}
                         <a
-                            href="http://localhost:8888"
+                            href={portalHomeUrl}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -183,7 +185,7 @@ export default function Navbar() {
                     }}>
                         {/* Portal Home (Mobile) */}
                         <a
-                            href="http://localhost:8888"
+                            href={portalHomeUrl}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
