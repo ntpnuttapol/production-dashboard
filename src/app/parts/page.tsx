@@ -152,7 +152,7 @@ export default function PartsPage() {
       <Navbar />
       <div className="cartoon-container">
         <div className="page-sticky-shell">
-          <div className="page-toolbar-card" style={{ marginBottom: '24px' }}>
+          <div className="page-toolbar-card">
             {/* Page Title */}
             <div className="cartoon-page-title" style={{ marginBottom: '20px', paddingBottom: '20px' }}>
               <div>

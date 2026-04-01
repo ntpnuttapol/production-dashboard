@@ -225,7 +225,8 @@ body {
   position: sticky;
   top: calc(var(--navbar-height) + 8px);
   z-index: 120;
-  margin-bottom: 24px;
+  padding-bottom: 24px;
+  background: var(--color-bg-primary);
 }
 
 .page-toolbar-card {
