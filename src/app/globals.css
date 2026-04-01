@@ -64,10 +64,8 @@ body {
 }
 
 .cartoon-card:hover {
-  /* Using translateY(-4px) combined with any base transform requires care, 
-     but since React inline styles apply `transform`, we use important here 
-     to apply the hover effect and cancel inline scale down. */
-  transform: translateY(-4px) scale(1.02) !important;
+  /* Keep hover calm to avoid layout distraction while preserving focus feedback. */
+  transform: none !important;
   opacity: 1 !important;
   filter: none !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
@@ -103,7 +101,7 @@ body {
 
 .cartoon-btn:hover {
   filter: brightness(1.05);
-  transform: translateY(-2px);
+  transform: none;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
