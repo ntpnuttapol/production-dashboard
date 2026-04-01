@@ -9,7 +9,6 @@
    ═══════════════════════════════════════ */
 
 :root {
-  --navbar-height: 64px;
   --color-bg-primary: #F8FAFC;
   /* softest gray/white */
   --color-bg-secondary: #FFFFFF;
@@ -219,23 +218,6 @@ body {
   border-bottom: 2px dashed var(--color-border);
 }
 
-.page-sticky-shell {
-  position: sticky;
-  top: calc(var(--navbar-height) + 8px);
-  z-index: 120;
-  padding-bottom: 24px;
-  background: var(--color-bg-primary);
-}
-
-.page-toolbar-card {
-  background: var(--color-bg-card);
-  border: 3px solid var(--color-border);
-  border-radius: 28px;
-  box-shadow: 0 12px 28px -24px rgba(15, 23, 42, 0.24);
-  padding: 18px 20px;
-  opacity: 1;
-}
-
 .page-toolbar-tabs {
   display: flex;
   gap: 12px;
@@ -243,15 +225,6 @@ body {
 }
 
 @media (max-width: 767px) {
-  .page-sticky-shell {
-    top: calc(var(--navbar-height) + 6px);
-  }
-
-  .page-toolbar-card {
-    padding: 16px;
-    border-radius: 22px;
-  }
-
   .page-toolbar-tabs {
     gap: 10px;
   }
