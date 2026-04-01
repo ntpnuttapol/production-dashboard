@@ -9,6 +9,7 @@
    ═══════════════════════════════════════ */
 
 :root {
+  --navbar-height: 64px;
   --color-bg-primary: #F8FAFC;
   /* softest gray/white */
   --color-bg-secondary: #FFFFFF;
@@ -220,6 +221,44 @@ body {
   margin-bottom: 32px;
   padding-bottom: 24px;
   border-bottom: 2px dashed var(--color-border);
+}
+
+.page-sticky-shell {
+  position: sticky;
+  top: calc(var(--navbar-height) + 12px);
+  z-index: 900;
+  margin-bottom: 24px;
+}
+
+.page-toolbar-card {
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 2px solid rgba(226, 232, 240, 0.95);
+  border-radius: 28px;
+  box-shadow: 0 18px 30px -24px rgba(15, 23, 42, 0.32);
+  padding: 18px 20px;
+}
+
+.page-toolbar-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .page-sticky-shell {
+    top: calc(var(--navbar-height) + 8px);
+  }
+
+  .page-toolbar-card {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .page-toolbar-tabs {
+    gap: 10px;
+  }
 }
 
 /* ═══ Animation Keyframes ═══ */
