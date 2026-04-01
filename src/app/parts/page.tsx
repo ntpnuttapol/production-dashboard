@@ -151,65 +151,67 @@ export default function PartsPage() {
     <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
       <Navbar />
       <div className="cartoon-container">
-        {/* Page Title */}
-        <div className="page-toolbar-card" style={{ marginBottom: '24px' }}>
-          <div className="cartoon-page-title" style={{ marginBottom: '20px', paddingBottom: '20px' }}>
-            <div>
-              <h1 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-green)' }}>
-                📦 PARTS
-              </h1>
-              <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-                กำหนดรหัสชิ้นส่วนและค่า Standard แยกตามแผนก
-              </p>
+        <div className="page-sticky-shell">
+          <div className="page-toolbar-card" style={{ marginBottom: '24px' }}>
+            {/* Page Title */}
+            <div className="cartoon-page-title" style={{ marginBottom: '20px', paddingBottom: '20px' }}>
+              <div>
+                <h1 className="cartoon-font" style={{ margin: 0, fontSize: '20px', color: 'var(--color-green)' }}>
+                  📦 PARTS
+                </h1>
+                <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                  กำหนดรหัสชิ้นส่วนและค่า Standard แยกตามแผนก
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {!showForm && (
+                  <button
+                    className="cartoon-btn"
+                    onClick={openNewForm}
+                    style={{
+                      padding: '10px 20px',
+                      background: tabConfig.color,
+                      color: '#FFFFFF',
+                      fontSize: '14px',
+                    }}
+                  >
+                    ➕ เพิ่ม Part ({tabConfig.icon} {tabConfig.label})
+                  </button>
+                )}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {!showForm && (
+
+            {/* Department Tabs */}
+            <div className="page-toolbar-tabs">
+              {(Object.entries(DEPT_CONFIG) as [DeptTab, typeof DEPT_CONFIG[DeptTab]][]).map(([key, cfg]) => (
                 <button
+                  key={key}
+                  onClick={() => { setActiveTab(key); setShowForm(false); setEditData(null) }}
                   className="cartoon-btn"
-                  onClick={openNewForm}
                   style={{
-                    padding: '10px 20px',
-                    background: tabConfig.color,
-                    color: '#FFFFFF',
-                    fontSize: '14px',
+                    padding: '12px 24px',
+                    background: activeTab === key ? cfg.color : 'var(--color-bg-secondary)',
+                    color: activeTab === key ? '#FFFFFF' : 'var(--color-text-secondary)',
+                    fontWeight: 'bold',
+                    fontSize: '15px',
+                    border: `3px solid ${activeTab === key ? cfg.color : 'var(--color-border)'}`,
                   }}
                 >
-                  ➕ เพิ่ม Part ({tabConfig.icon} {tabConfig.label})
+                  {cfg.icon} {cfg.label}
+                  <span style={{
+                    marginLeft: '8px',
+                    background: activeTab === key ? 'rgba(255,255,255,0.25)' : cfg.bg,
+                    color: activeTab === key ? '#FFFFFF' : cfg.color,
+                    borderRadius: '100px',
+                    padding: '2px 8px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                  }}>
+                    {countByDept(key)}
+                  </span>
                 </button>
-              )}
+              ))}
             </div>
-          </div>
-
-          {/* Department Tabs */}
-          <div className="page-toolbar-tabs">
-            {(Object.entries(DEPT_CONFIG) as [DeptTab, typeof DEPT_CONFIG[DeptTab]][]).map(([key, cfg]) => (
-              <button
-                key={key}
-                onClick={() => { setActiveTab(key); setShowForm(false); setEditData(null) }}
-                className="cartoon-btn"
-                style={{
-                  padding: '12px 24px',
-                  background: activeTab === key ? cfg.color : 'var(--color-bg-secondary)',
-                  color: activeTab === key ? '#FFFFFF' : 'var(--color-text-secondary)',
-                  fontWeight: 'bold',
-                  fontSize: '15px',
-                  border: `3px solid ${activeTab === key ? cfg.color : 'var(--color-border)'}`,
-                }}
-              >
-                {cfg.icon} {cfg.label}
-                <span style={{
-                  marginLeft: '8px',
-                  background: activeTab === key ? 'rgba(255,255,255,0.25)' : cfg.bg,
-                  color: activeTab === key ? '#FFFFFF' : cfg.color,
-                  borderRadius: '100px',
-                  padding: '2px 8px',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                }}>
-                  {countByDept(key)}
-                </span>
-              </button>
-            ))}
           </div>
         </div>
 
@@ -374,7 +376,7 @@ export default function PartsPage() {
               📭 ไม่พบข้อมูล Part Number ของ {tabConfig.icon} {tabConfig.label}
             </div>
           ) : (
-            <div className="parts-table-scroll">
+            <div style={{ overflowX: 'auto' }}>
               <table className="cartoon-table">
                 <thead>
                   <tr>
