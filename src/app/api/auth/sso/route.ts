@@ -1,13 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const HUB_VALIDATE_URL = process.env.NEXT_PUBLIC_HUB_URL 
-  ? `${process.env.NEXT_PUBLIC_HUB_URL}/api/sso/validate`
-  : 'http://localhost:3000/api/sso/validate'
+const DEFAULT_HUB_ORIGINS = [
+  process.env.NEXT_PUBLIC_HUB_URL,
+  'https://polyfoampfs-hub.vercel.app',
+  'https://pfs-portal.vercel.app',
+  'http://localhost:3000',
+].filter(Boolean) as string[]
+
+function normalizeOrigin(value?: string | null) {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const url = new URL(value)
+    return url.origin
+  } catch {
+    return null
+  }
+}
+
+function resolveHubValidateUrl(hubOrigin?: string | null) {
+  const allowedOrigins = new Set(
+    DEFAULT_HUB_ORIGINS.map((origin) => normalizeOrigin(origin)).filter(Boolean) as string[]
+  )
+
+  const requestedOrigin = normalizeOrigin(hubOrigin)
+  const origin = requestedOrigin && allowedOrigins.has(requestedOrigin)
+    ? requestedOrigin
+    : normalizeOrigin(process.env.NEXT_PUBLIC_HUB_URL) || 'https://polyfoampfs-hub.vercel.app'
+
+  return `${origin}/api/sso/validate`
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sso_token } = body
+    const { sso_token, hub_origin } = body
 
     if (!sso_token) {
       return NextResponse.json(
@@ -16,8 +45,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const validateUrl = resolveHubValidateUrl(hub_origin)
+
     // Validate token with Hub
-    const validateRes = await fetch(HUB_VALIDATE_URL, {
+    const validateRes = await fetch(validateUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

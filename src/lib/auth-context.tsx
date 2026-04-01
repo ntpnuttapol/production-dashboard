@@ -18,7 +18,7 @@ interface AuthContextType {
   user: AppUser | null
   loading: boolean
   login: (employeeId: string, password: string) => Promise<{ error: string | null }>
-  loginWithSso: (ssoToken: string) => Promise<{ error: string | null; user?: AppUser }>
+  loginWithSso: (ssoToken: string, hubOrigin?: string | null) => Promise<{ error: string | null; user?: AppUser }>
   logout: () => Promise<void>
   canAccessLine: (lineId: string) => boolean
   isAdmin: boolean
@@ -99,13 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const loginWithSso = async (ssoToken: string): Promise<{ error: string | null; user?: AppUser }> => {
+  const loginWithSso = async (ssoToken: string, hubOrigin?: string | null): Promise<{ error: string | null; user?: AppUser }> => {
     try {
       // Validate token with our API
       const res = await fetch('/api/auth/sso', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sso_token: ssoToken })
+        body: JSON.stringify({
+          sso_token: ssoToken,
+          hub_origin: hubOrigin || null,
+        })
       })
 
       const data = await res.json()

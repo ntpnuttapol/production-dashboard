@@ -17,9 +17,10 @@ function LoginContent() {
   // Handle SSO token from Hub
   useEffect(() => {
     const ssoToken = searchParams.get('sso_token')
+    const hubOrigin = searchParams.get('hub_origin')
     if (ssoToken) {
       setSsoLoading(true)
-      loginWithSso(ssoToken)
+      loginWithSso(ssoToken, hubOrigin)
         .then((result) => {
           if (result.error) {
             setError(result.error)
