@@ -179,38 +179,6 @@ export default function PartsPage() {
           </div>
         </div>
 
-        {/* Department Tabs */}
-        <div className="page-toolbar-tabs" style={{ marginBottom: '24px' }}>
-          {(Object.entries(DEPT_CONFIG) as [DeptTab, typeof DEPT_CONFIG[DeptTab]][]).map(([key, cfg]) => (
-            <button
-              key={key}
-              onClick={() => { setActiveTab(key); setShowForm(false); setEditData(null) }}
-              className="cartoon-btn"
-              style={{
-                padding: '12px 24px',
-                background: activeTab === key ? cfg.color : 'var(--color-bg-secondary)',
-                color: activeTab === key ? '#FFFFFF' : 'var(--color-text-secondary)',
-                fontWeight: 'bold',
-                fontSize: '15px',
-                border: `3px solid ${activeTab === key ? cfg.color : 'var(--color-border)'}`,
-              }}
-            >
-              {cfg.icon} {cfg.label}
-              <span style={{
-                marginLeft: '8px',
-                background: activeTab === key ? 'rgba(255,255,255,0.25)' : cfg.bg,
-                color: activeTab === key ? '#FFFFFF' : cfg.color,
-                borderRadius: '100px',
-                padding: '2px 8px',
-                fontSize: '12px',
-                fontWeight: 800,
-              }}>
-                {countByDept(key)}
-              </span>
-            </button>
-          ))}
-        </div>
-
         {/* Form */}
         {showForm && (
           <div className="cartoon-card" style={{ marginBottom: '24px', borderTopColor: tabConfig.color, borderTopWidth: '6px' }}>
@@ -345,24 +313,57 @@ export default function PartsPage() {
         <div className="cartoon-card" style={{ borderTopColor: tabConfig.color, borderTopWidth: '6px' }}>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            flexWrap: 'wrap', gap: '12px',
             marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px dashed var(--color-border)',
           }}>
             <h2 className="cartoon-font" style={{ margin: 0, fontSize: '18px', color: tabConfig.color }}>
               {tabConfig.icon} {tabConfig.label.toUpperCase()} — PART LIST
             </h2>
-            <button
-              onClick={() => setShowInactive(!showInactive)}
-              className="cartoon-btn"
-              style={{
-                padding: '8px 16px',
-                background: showInactive ? 'var(--color-bg-input)' : 'transparent',
-                color: showInactive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                border: '2px solid var(--color-border)',
-                fontSize: '13px',
-              }}
-            >
-              {showInactive ? '👁️ แสดงทั้งหมด' : '👁️‍🗨️ ซ่อนที่ปิดใช้งาน'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <div className="page-toolbar-tabs">
+                {(Object.entries(DEPT_CONFIG) as [DeptTab, typeof DEPT_CONFIG[DeptTab]][]).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setActiveTab(key); setShowForm(false); setEditData(null) }}
+                    className="cartoon-btn"
+                    style={{
+                      padding: '9px 18px',
+                      background: activeTab === key ? cfg.color : 'var(--color-bg-secondary)',
+                      color: activeTab === key ? '#FFFFFF' : 'var(--color-text-secondary)',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      border: `2px solid ${activeTab === key ? cfg.color : 'var(--color-border)'}`,
+                    }}
+                  >
+                    {cfg.icon} {cfg.label}
+                    <span style={{
+                      marginLeft: '8px',
+                      background: activeTab === key ? 'rgba(255,255,255,0.25)' : cfg.bg,
+                      color: activeTab === key ? '#FFFFFF' : cfg.color,
+                      borderRadius: '100px',
+                      padding: '2px 8px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                    }}>
+                      {countByDept(key)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowInactive(!showInactive)}
+                className="cartoon-btn"
+                style={{
+                  padding: '8px 16px',
+                  background: showInactive ? 'var(--color-bg-input)' : 'transparent',
+                  color: showInactive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                  border: '2px solid var(--color-border)',
+                  fontSize: '13px',
+                }}
+              >
+                {showInactive ? '👁️ แสดงทั้งหมด' : '👁️‍🗨️ ซ่อนที่ปิดใช้งาน'}
+              </button>
+            </div>
           </div>
 
           {loading ? (
