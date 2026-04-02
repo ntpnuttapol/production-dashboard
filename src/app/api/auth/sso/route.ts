@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getHubUrl, getSupabaseServiceEnv } from '@/lib/public-env'
+import { getHubUrl, getSupabaseEnv, getSupabaseServiceEnv } from '@/lib/public-env'
 
 const DEFAULT_HUB_ORIGINS = [
   getHubUrl(),
@@ -93,13 +93,16 @@ async function findOrProvisionLocalUser(
   employeeCode: string,
   fullName: string
 ) {
-  const { supabaseUrl, serviceRoleKey } = getSupabaseServiceEnv()
+  const { supabaseUrl: serviceSupabaseUrl, serviceRoleKey } = getSupabaseServiceEnv()
+  const { supabaseUrl: anonSupabaseUrl, supabaseKey } = getSupabaseEnv()
+  const supabaseUrl = serviceSupabaseUrl || anonSupabaseUrl
+  const supabaseAccessKey = serviceRoleKey || supabaseKey
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing Supabase service role environment variables')
+  if (!supabaseUrl || !supabaseAccessKey) {
+    throw new Error('Missing Supabase environment variables for SSO provisioning')
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  const supabase = createClient(supabaseUrl, supabaseAccessKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
