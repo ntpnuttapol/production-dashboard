@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import { INPUT_STYLE, LABEL_STYLE } from '@/lib/constants'
+import { useAuth } from '@/lib/auth-context'
 
 interface Customer {
   id: string
@@ -21,6 +23,8 @@ const EMPTY_FORM = {
 
 export default function CustomersPage() {
   const supabase = createClient()
+  const router = useRouter()
+  const { user, loading: authLoading, canAccessPage } = useAuth()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -42,8 +46,24 @@ export default function CustomersPage() {
     setLoading(false)
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchCustomers() }, [])
+  useEffect(() => {
+    if (authLoading || !user || !canAccessPage('customers')) return
+    fetchCustomers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, canAccessPage])
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    if (!canAccessPage('customers')) {
+      router.push('/')
+    }
+  }, [authLoading, canAccessPage, router, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,6 +135,24 @@ export default function CustomersPage() {
   }
 
   const filteredCustomers = showInactive ? customers : customers.filter(c => c.is_active)
+
+  if (authLoading || !user || !canAccessPage('customers')) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
+        <Navbar />
+        <div className="cartoon-container">
+          <div className="cartoon-card" style={{ padding: '32px', textAlign: 'center' }}>
+            <div className="cartoon-font" style={{ fontSize: '18px', color: '#10B981', marginBottom: '8px' }}>
+              ⏳ กำลังตรวจสอบสิทธิ์
+            </div>
+            <div style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              กรุณารอสักครู่...
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>

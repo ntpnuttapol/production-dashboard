@@ -16,10 +16,11 @@ interface WorkEntryPageProps {
 export default function WorkEntryPage({ mode }: WorkEntryPageProps) {
   const config = WORK_MODE_META[mode]
   const router = useRouter()
-  const { user, loading: authLoading, canAccessDepartment } = useAuth()
+  const { user, loading: authLoading, canAccessPage } = useAuth()
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [editData, setEditData] = useState<WorkEntry | undefined>(undefined)
   const [showForm, setShowForm] = useState(false)
+  const accessPage = mode === 'production' ? 'production' : 'finishing'
 
   useEffect(() => {
     if (authLoading) return
@@ -29,10 +30,10 @@ export default function WorkEntryPage({ mode }: WorkEntryPageProps) {
       return
     }
 
-    if (!canAccessDepartment(mode)) {
+    if (!canAccessPage(accessPage)) {
       router.push('/')
     }
-  }, [authLoading, canAccessDepartment, mode, router, user])
+  }, [accessPage, authLoading, canAccessPage, router, user])
 
   const handleSuccess = () => {
     setRefreshTrigger(prev => prev + 1)
@@ -46,7 +47,7 @@ export default function WorkEntryPage({ mode }: WorkEntryPageProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  if (authLoading || !user || !canAccessDepartment(mode)) {
+  if (authLoading || !user || !canAccessPage(accessPage)) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
         <Navbar />

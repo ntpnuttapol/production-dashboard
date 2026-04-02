@@ -15,6 +15,8 @@ export interface AppUser {
   allowedLines: string[]
 }
 
+export type PageAccessKey = 'dashboard' | 'production' | 'finishing' | 'analytics' | 'parts' | 'customers' | 'admin'
+
 interface AuthContextType {
   user: AppUser | null
   loading: boolean
@@ -23,6 +25,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   canAccessLine: (lineId: string) => boolean
   canAccessDepartment: (department: WorkMode) => boolean
+  canAccessPage: (page: PageAccessKey) => boolean
   isAdmin: boolean
 }
 
@@ -34,6 +37,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   canAccessLine: () => false,
   canAccessDepartment: () => false,
+  canAccessPage: () => false,
   isAdmin: false,
 })
 
@@ -211,10 +215,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user.department === department
   }
 
+  const canAccessPage = (page: PageAccessKey): boolean => {
+    if (!user) return false
+    if (user.role === 'admin') return true
+
+    switch (page) {
+      case 'dashboard':
+      case 'analytics':
+      case 'parts':
+        return true
+      case 'production':
+        return canAccessDepartment('production')
+      case 'finishing':
+        return canAccessDepartment('finishing')
+      case 'customers':
+      case 'admin':
+        return false
+      default:
+        return false
+    }
+  }
+
   const isAdmin = user?.role === 'admin'
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithSso, logout, canAccessLine, canAccessDepartment, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithSso, logout, canAccessLine, canAccessDepartment, canAccessPage, isAdmin }}>
       {children}
     </AuthContext.Provider>
   )

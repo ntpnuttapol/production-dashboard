@@ -25,16 +25,23 @@ interface ChartLine {
 export default function AnalyticsPage() {
   const supabase = createClient()
   const router = useRouter()
-  const { user, loading: authLoading, canAccessLine } = useAuth()
+  const { user, loading: authLoading, canAccessLine, canAccessPage } = useAuth()
   const { productionLines, finishingLines } = useLines()
   const [lines, setLines] = useState<ChartLine[]>([])
   const [time, setTime] = useState<Date | null>(null)
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return
+
+    if (!user) {
       router.push('/login')
+      return
     }
-  }, [authLoading, user, router])
+
+    if (!canAccessPage('analytics')) {
+      router.push('/')
+    }
+  }, [authLoading, canAccessPage, router, user])
 
   useEffect(() => {
     setTime(new Date())
@@ -79,11 +86,13 @@ export default function AnalyticsPage() {
   }
 
   useEffect(() => {
+    if (authLoading || !user || !canAccessPage('analytics')) return
+
     fetchData()
     const t = setInterval(fetchData, 5000)
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productionLines, finishingLines])
+  }, [authLoading, canAccessPage, productionLines, finishingLines, user])
 
   const visibleLines = user ? lines.filter(l => canAccessLine(l.id)) : lines
 
@@ -99,6 +108,24 @@ export default function AnalyticsPage() {
     .filter(l => l.status !== 'idle')
     .map(l => ({ ...l, pct: l.target > 0 ? Math.round((l.current / l.target) * 100) : 0 }))
     .sort((a, b) => b.pct - a.pct)
+
+  if (authLoading || !user || !canAccessPage('analytics')) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
+        <Navbar />
+        <div className="cartoon-container">
+          <div className="cartoon-card" style={{ padding: '32px', textAlign: 'center' }}>
+            <div className="cartoon-font" style={{ fontSize: '18px', color: 'var(--color-blue)', marginBottom: '8px' }}>
+              ⏳ กำลังตรวจสอบสิทธิ์
+            </div>
+            <div style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              กรุณารอสักครู่...
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>

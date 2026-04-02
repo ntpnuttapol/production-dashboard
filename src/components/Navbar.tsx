@@ -3,32 +3,31 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { useAuth } from '@/lib/auth-context'
+import { useAuth, type PageAccessKey } from '@/lib/auth-context'
 import { getHubUrl } from '@/lib/public-env'
-import type { WorkMode } from '@/lib/work-modes'
 
 interface NavItem {
     href: string
     label: string
     icon: string
     color: string
-    department?: WorkMode
+    page: PageAccessKey
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { href: '/', label: 'Dashboard', icon: '🖥️', color: '#F59E0B' },
-    { href: '/production', label: 'Produce', icon: '📝', color: '#F59E0B', department: 'production' },
-    { href: '/finishing', label: 'Finish', icon: '🔧', color: '#8B5CF6', department: 'finishing' },
-    { href: '/analytics', label: 'Analytics', icon: '📊', color: '#3B82F6' },
-    { href: '/parts', label: 'Parts', icon: '📦', color: '#22C55E' },
-    { href: '/customers', label: 'Customers', icon: '👥', color: '#10B981' },
+    { href: '/', label: 'Dashboard', icon: '🖥️', color: '#F59E0B', page: 'dashboard' },
+    { href: '/production', label: 'Produce', icon: '📝', color: '#F59E0B', page: 'production' },
+    { href: '/finishing', label: 'Finish', icon: '🔧', color: '#8B5CF6', page: 'finishing' },
+    { href: '/analytics', label: 'Analytics', icon: '📊', color: '#3B82F6', page: 'analytics' },
+    { href: '/parts', label: 'Parts', icon: '📦', color: '#22C55E', page: 'parts' },
+    { href: '/customers', label: 'Customers', icon: '👥', color: '#10B981', page: 'customers' },
 ]
 
 const ADMIN_ITEM = { href: '/admin', label: 'Admin', icon: '⚙️', color: '#EF4444' }
 
 export default function Navbar() {
     const pathname = usePathname()
-    const { user, isAdmin, logout, canAccessDepartment } = useAuth()
+    const { user, isAdmin, logout, canAccessPage } = useAuth()
     const [menuOpen, setMenuOpen] = useState(false)
     const portalHomeUrl = getHubUrl()
 
@@ -37,7 +36,7 @@ export default function Navbar() {
         window.location.href = '/login'
     }
 
-    const visibleItems = NAV_ITEMS.filter(item => !item.department || canAccessDepartment(item.department))
+    const visibleItems = NAV_ITEMS.filter(item => canAccessPage(item.page))
     const allItems = isAdmin ? [...visibleItems, ADMIN_ITEM] : visibleItems
 
     const userDepartmentLabel = user?.role === 'admin'
