@@ -46,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
+  const clearSession = () => {
+    setUser(null)
+    localStorage.removeItem(SESSION_KEY)
+  }
+
   // Load user from localStorage on mount
   useEffect(() => {
     try {
@@ -56,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Error loading session:', err)
-      localStorage.removeItem(SESSION_KEY)
+      clearSession()
     } finally {
       setLoading(false)
     }
@@ -121,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json()
 
       if (!res.ok || data.error) {
+        clearSession()
         return { error: data.error || 'SSO login failed' }
       }
 
@@ -140,20 +146,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single()
 
       if (lookupError || !localUser) {
-        // If no mapping found, create a temporary session with Hub user info
-        // This allows access but with limited permissions
-        const tempUser: AppUser = {
-          id: data.hubUser.hubUserId,
-          employeeId: employeeCode.toUpperCase(),
-          fullName: hubMetadata.full_name || hubMetadata.name || hubEmail.split('@')[0] || 'Hub User',
-          role: 'user',
-          department: 'all',
-          allowedLines: []
+        clearSession()
+        return {
+          error: `ยังไม่ได้กำหนดสิทธิ์แผนกสำหรับรหัสพนักงาน ${employeeCode.toUpperCase()} ใน Project Finishing กรุณาให้ Admin เพิ่มผู้ใช้และกำหนดแผนกก่อนใช้งาน`
         }
-        
-        setUser(tempUser)
-        localStorage.setItem(SESSION_KEY, JSON.stringify(tempUser))
-        return { error: null, user: tempUser }
+      }
+
+      if (!localUser.department) {
+        clearSession()
+        return {
+          error: `บัญชี ${employeeCode.toUpperCase()} ยังไม่ได้กำหนดแผนกใน Project Finishing กรุณาติดต่อ Admin`
+        }
       }
 
       // Use mapped local user
@@ -172,13 +175,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (err) {
       console.error('SSO login error:', err)
+      clearSession()
       return { error: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบผ่าน SSO' }
     }
   }
 
   const logout = async () => {
-    setUser(null)
-    localStorage.removeItem(SESSION_KEY)
+    clearSession()
   }
 
   const canAccessLine = (lineId: string): boolean => {
