@@ -41,6 +41,13 @@ export function getSupabaseEnv() {
   }
 }
 
+export function getSupabaseServiceEnv() {
+  return {
+    supabaseUrl: sanitizeUrl(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    serviceRoleKey: sanitizeEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY),
+  }
+}
+
 export function getHubUrl() {
   return sanitizeUrl(process.env.NEXT_PUBLIC_HUB_URL) || 'https://polyfoampfs-hub.vercel.app/'
 }

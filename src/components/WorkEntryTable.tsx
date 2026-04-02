@@ -24,6 +24,7 @@ interface EntryFilterState {
 export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEntryTableProps) {
   const supabase = createClient()
   const config = WORK_MODE_META[mode]
+  const showShiftControls = config.usesShiftTracking
   const [entries, setEntries] = useState<WorkEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<EntryFilterState>({ status: 'all', shift: 'all', date: '' })
@@ -33,7 +34,7 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
     let query = supabase.from(config.table).select('*').order('created_at', { ascending: false })
 
     if (filter.status !== 'all') query = query.eq('status', filter.status)
-    if (filter.shift !== 'all') query = query.eq('shift', filter.shift)
+    if (showShiftControls && filter.shift !== 'all') query = query.eq('shift', filter.shift)
     if (filter.date) query = query.gte('created_at', `${filter.date}T00:00:00`).lte('created_at', `${filter.date}T23:59:59`)
 
     const { data, error } = await query
@@ -74,13 +75,15 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
           <option value="completed">{config.statusOptions.completed}</option>
           <option value="idle">{config.statusOptions.idle}</option>
         </select>
-        <select value={filter.shift} onChange={(e) => setFilter(prev => ({ ...prev, shift: e.target.value as EntryFilterState['shift'] }))} style={filterStyle}>
-          <option value="all">ทุกกะ</option>
-          <option value="morning">☀️ กะเช้า</option>
-          <option value="night">🌙 กะกลางคืน</option>
-        </select>
+        {showShiftControls && (
+          <select value={filter.shift} onChange={(e) => setFilter(prev => ({ ...prev, shift: e.target.value as EntryFilterState['shift'] }))} style={filterStyle}>
+            <option value="all">ทุกกะ</option>
+            <option value="morning">☀️ กะเช้า</option>
+            <option value="night">🌙 กะกลางคืน</option>
+          </select>
+        )}
         <input type="date" value={filter.date} onChange={(e) => setFilter(prev => ({ ...prev, date: e.target.value }))} style={filterStyle} />
-        {(filter.status !== 'all' || filter.shift !== 'all' || filter.date) && (
+        {(filter.status !== 'all' || (showShiftControls && filter.shift !== 'all') || filter.date) && (
           <button className="cartoon-btn" onClick={() => setFilter({ status: 'all', shift: 'all', date: '' })} style={{ padding: '10px 16px', background: '#FEE2E2', color: '#EF4444', fontSize: '14px' }}>✕ ล้าง</button>
         )}
       </div>
@@ -101,7 +104,7 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
                 <th>ล็อต</th>
                 <th style={{ textAlign: 'center' }}>จำนวน</th>
                 <th style={{ textAlign: 'center' }}>สถานะ</th>
-                <th style={{ textAlign: 'center' }}>กะ</th>
+                {showShiftControls && <th style={{ textAlign: 'center' }}>กะ</th>}
                 <th>ผู้รับผิดชอบ</th>
                 <th style={{ textAlign: 'center' }}>จัดการ</th>
               </tr>
@@ -109,7 +112,7 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
             <tbody>
               {entries.map((entry) => {
                 const statusConfig = config.statusConfig[entry.status]
-                const shiftConfig = SHIFT_CONFIG[entry.shift]
+                const shiftConfig = showShiftControls ? SHIFT_CONFIG[entry.shift] : null
                 const progress = entry.target_qty > 0 ? Math.round((entry.completed_qty / entry.target_qty) * 100) : 0
 
                 return (
@@ -129,7 +132,9 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
                     <td style={{ textAlign: 'center' }}>
                       <span className="cartoon-badge" style={{ background: `${statusConfig.color}20`, color: statusConfig.color }}>{statusConfig.label}</span>
                     </td>
-                    <td style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{shiftConfig.icon} {shiftConfig.label}</td>
+                    {showShiftControls && shiftConfig && (
+                      <td style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{shiftConfig.icon} {shiftConfig.label}</td>
+                    )}
                     <td style={{ fontWeight: 600 }}>{entry.operator}</td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>

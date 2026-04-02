@@ -33,23 +33,5 @@ CREATE TRIGGER update_part_numbers_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- ═══════════════════════════════════════
--- ALTER PLANNING_ENTRIES - Add part_number_id
--- ═══════════════════════════════════════
-
-ALTER TABLE planning_entries 
-ADD COLUMN IF NOT EXISTS part_number_id UUID REFERENCES part_numbers(id);
-
--- ═══════════════════════════════════════
--- ALTER PRODUCTION_ENTRIES - Add plan_id
--- ═══════════════════════════════════════
-
-ALTER TABLE production_entries 
-ADD COLUMN IF NOT EXISTS plan_id UUID REFERENCES planning_entries(id);
-
--- ═══════════════════════════════════════
--- ALTER FINISHING_ENTRIES - Add plan_id
--- ═══════════════════════════════════════
-
-ALTER TABLE finishing_entries 
-ADD COLUMN IF NOT EXISTS plan_id UUID REFERENCES planning_entries(id);
+-- Planning has been removed from the app flow.
+-- Keep this script focused on part number master data only.

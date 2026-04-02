@@ -35,6 +35,9 @@ interface DashboardLine {
   startTime: string
   endTime: string
   operator: string
+  queueCount: number
+  nextQueueProduct: string
+  nextQueueLot: string
   stdQty?: number
   actualRate?: {
     perMinute: number
@@ -50,9 +53,20 @@ interface DashboardLine {
   }
 }
 
-function Card({ line, onEdit, onQuickAdd }: { line: DashboardLine; onEdit: (line: DashboardLine) => void; onQuickAdd?: (line: DashboardLine, qty: number) => void }) {
+function Card({
+  line,
+  onEdit,
+  onQuickAdd,
+  onStartEntry,
+}: {
+  line: DashboardLine
+  onEdit: (line: DashboardLine) => void
+  onQuickAdd?: (line: DashboardLine, qty: number) => void
+  onStartEntry?: (line: DashboardLine) => void
+}) {
   const statusConfig = line.type === 'production' ? PRODUCTION_STATUS_CONFIG : FINISHING_STATUS_CONFIG
   const config = statusConfig[line.status] || statusConfig['idle']
+  const showTimeTracking = line.type === 'production'
 
   const borderColor = line.status === 'running'
     ? (line.type === 'production' ? 'var(--color-running)' : 'var(--color-purple)')
@@ -87,6 +101,33 @@ function Card({ line, onEdit, onQuickAdd }: { line: DashboardLine; onEdit: (line
           <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--color-text-primary)' }}>{line.name}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {line.queueCount > 0 && (
+            <div className="cartoon-badge" style={{
+              background: line.type === 'production' ? '#DBEAFE' : '#EDE9FE',
+              color: line.type === 'production' ? '#2563EB' : '#7C3AED',
+              border: `2px solid ${line.type === 'production' ? '#93C5FD' : '#C4B5FD'}`,
+            }}>
+              📚 คิว {line.queueCount}
+            </div>
+          )}
+          {line.entryId && line.status === 'idle' && onStartEntry && (
+            <button
+              onClick={() => onStartEntry(line)}
+              className="cartoon-btn"
+              style={{
+                padding: '6px 14px',
+                background: line.type === 'production'
+                  ? 'linear-gradient(90deg, #F59E0B, #10B981)'
+                  : 'linear-gradient(90deg, #8B5CF6, #6366F1)',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: '800',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
+              }}
+            >
+              ▶ เริ่มงาน
+            </button>
+          )}
           {line.status === 'running' && onQuickAdd && line.entryId && (
             <div style={{ display: 'flex', gap: '4px', marginRight: '6px' }}>
               <button
@@ -157,6 +198,26 @@ function Card({ line, onEdit, onQuickAdd }: { line: DashboardLine; onEdit: (line
           )}
         </div>
 
+        {line.queueCount > 0 && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '12px 16px',
+            background: line.type === 'production' ? '#EFF6FF' : '#F5F3FF',
+            borderRadius: '16px',
+            border: `2px dashed ${line.type === 'production' ? '#93C5FD' : '#C4B5FD'}`,
+          }}>
+            <div style={{ fontSize: '12px', fontWeight: '800', color: line.type === 'production' ? '#2563EB' : '#7C3AED', marginBottom: '6px' }}>
+              📚 รออีก {line.queueCount} งานในไลน์นี้
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: '700' }}>
+              ถัดไป: {line.nextQueueProduct || '-'}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: '600', marginTop: '4px' }}>
+              Lot: {line.nextQueueLot || '-'}
+            </div>
+          </div>
+        )}
+
         {/* Pixel Dino Animation + Progress Bar */}
         <div style={{ marginBottom: '16px' }}>
           {/* Counter row & ETA */}
@@ -165,7 +226,7 @@ function Card({ line, onEdit, onQuickAdd }: { line: DashboardLine; onEdit: (line
               <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
                 {line.current.toLocaleString()} / {line.target.toLocaleString()}
               </span>
-              {line.status === 'running' && line.target > 0 && line.current < line.target && line.actualRate && line.actualRate.perHour > 0 && (
+              {showTimeTracking && line.status === 'running' && line.target > 0 && line.current < line.target && line.actualRate && line.actualRate.perHour > 0 && (
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'bold', background: 'var(--color-bg-primary)', padding: '2px 8px', borderRadius: '10px' }}>
                   ⏱️ คาดว่าจะเสร็จ: {(() => {
                     const remaining = line.target - line.current
@@ -194,7 +255,7 @@ function Card({ line, onEdit, onQuickAdd }: { line: DashboardLine; onEdit: (line
             transition: 'all 0.3s ease',
           }}>
             {/* Speed Warning Visual Cue */}
-            {line.status === 'running' && line.efficiency && line.efficiency.percentage < 90 && (
+            {showTimeTracking && line.status === 'running' && line.efficiency && line.efficiency.percentage < 90 && (
               <div className="sweat-drop" style={{ position: 'absolute', top: '10px', right: '20px', fontSize: '24px', zIndex: 10 }}>💧</div>
             )}
             <PixelDinosaur status={line.status} />
@@ -217,16 +278,20 @@ function Card({ line, onEdit, onQuickAdd }: { line: DashboardLine; onEdit: (line
 
         {/* Time & Operator */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600',
-          paddingTop: '12px', borderTop: '2px dashed var(--color-border)',
+          display: 'flex',
+          justifyContent: showTimeTracking ? 'space-between' : 'flex-end',
+          fontSize: '13px',
+          color: 'var(--color-text-secondary)',
+          fontWeight: '600',
+          paddingTop: '12px',
+          borderTop: '2px dashed var(--color-border)',
         }}>
-          <span>⏱ {line.startTime || '--:--'} → {line.endTime || '--:--'}</span>
+          {showTimeTracking && <span>⏱ {line.startTime || '--:--'} → {line.endTime || '--:--'}</span>}
           <span>👷 {line.operator || '-'}</span>
         </div>
 
         {/* Production Rate */}
-        {line.stdQty && line.stdQty > 0 && (
+        {showTimeTracking && line.stdQty && line.stdQty > 0 && (
           <div style={{
             marginTop: '16px', padding: '12px 16px',
             background: 'var(--color-bg-input)', borderRadius: '16px',
@@ -335,23 +400,48 @@ export default function Dashboard() {
     const buildLine = (
       lineDef: { id: string; name: string },
       type: 'production' | 'finishing',
-      entry: WorkEntry | undefined
+      entries: WorkEntry[]
     ): DashboardLine => {
-      if (entry && isToday(entry.created_at)) {
-        const stdQty = entry.part_number_id ? (partStdMap.get(entry.part_number_id) || 0) : 0
-        const partNum = entry.part_number_id ? (partNumberMap.get(entry.part_number_id) || '') : ''
-        const isRunning = entry.status === 'running'
-        const actualRate = calculateActualRate(entry.completed_qty, entry.start_time, entry.end_time, isRunning)
-        const efficiency = stdQty > 0 ? getEfficiencyStatus(actualRate.perHour, stdQty) : undefined
+      const todayEntries = entries
+        .filter(entry => isToday(entry.created_at))
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+      const latestTodayEntry = todayEntries[todayEntries.length - 1]
+      const activeEntry =
+        todayEntries.find(entry => entry.status === 'running') ||
+        todayEntries.find(entry => entry.status === 'idle') ||
+        latestTodayEntry
+
+      const queueEntries = activeEntry
+        ? todayEntries.filter(entry => entry.id !== activeEntry.id && entry.status !== 'completed')
+        : []
+
+      const nextQueueEntry =
+        queueEntries.find(entry => entry.status === 'idle') ||
+        queueEntries[0]
+
+      if (activeEntry) {
+        const stdQty = activeEntry.part_number_id ? (partStdMap.get(activeEntry.part_number_id) || 0) : 0
+        const partNum = activeEntry.part_number_id ? (partNumberMap.get(activeEntry.part_number_id) || '') : ''
+        const isRunning = activeEntry.status === 'running'
+        const actualRate = type === 'production'
+          ? calculateActualRate(activeEntry.completed_qty, activeEntry.start_time, activeEntry.end_time, isRunning)
+          : undefined
+        const efficiency = type === 'production' && stdQty > 0 && actualRate
+          ? getEfficiencyStatus(actualRate.perHour, stdQty)
+          : undefined
 
         return {
           id: lineDef.id, name: lineDef.name, type,
-          entryId: entry.id, product: entry.product_name, partNumber: partNum,
-          target: entry.target_qty, current: entry.completed_qty,
-          status: entry.status,
-          startTime: entry.start_time?.slice(0, 5),
-          endTime: entry.end_time?.slice(0, 5),
-          operator: entry.operator,
+          entryId: activeEntry.id, product: activeEntry.product_name, partNumber: partNum,
+          target: activeEntry.target_qty, current: activeEntry.completed_qty,
+          status: activeEntry.status,
+          startTime: type === 'production' ? activeEntry.start_time?.slice(0, 5) : '',
+          endTime: type === 'production' ? activeEntry.end_time?.slice(0, 5) : '',
+          operator: activeEntry.operator,
+          queueCount: queueEntries.length,
+          nextQueueProduct: nextQueueEntry?.product_name || '',
+          nextQueueLot: nextQueueEntry?.lot_number || '',
           stdQty, actualRate, efficiency,
         }
       }
@@ -359,19 +449,18 @@ export default function Dashboard() {
         id: lineDef.id, name: lineDef.name, type,
         entryId: null, product: '', partNumber: '', target: 0, current: 0,
         status: 'idle', startTime: '', endTime: '', operator: '',
+        queueCount: 0, nextQueueProduct: '', nextQueueLot: '',
       }
     }
 
     const mappedLines: DashboardLine[] = []
     productionLines.forEach(lineDef => {
       const entries = prodData as WorkEntry[] | null
-      const entry = entries?.find(d => d.line_id === lineDef.id)
-      mappedLines.push(buildLine(lineDef, 'production', entry))
+      mappedLines.push(buildLine(lineDef, 'production', (entries || []).filter(d => d.line_id === lineDef.id)))
     })
     finishingLines.forEach(lineDef => {
       const entries = finishData as WorkEntry[] | null
-      const entry = entries?.find(d => d.line_id === lineDef.id)
-      mappedLines.push(buildLine(lineDef, 'finishing', entry))
+      mappedLines.push(buildLine(lineDef, 'finishing', (entries || []).filter(d => d.line_id === lineDef.id)))
     })
     setLines(mappedLines)
   }
@@ -433,6 +522,42 @@ export default function Dashboard() {
       // Refresh to ensure all logic (endTime, etc.) applies correctly if needed, though simple update is enough here
       fetchData()
     }
+  }
+
+  const handleStartEntry = async (line: DashboardLine) => {
+    if (!line.entryId || line.status === 'running') return
+
+    const table = line.type === 'production' ? 'production_entries' : 'finishing_entries'
+    const nowTime = new Date().toTimeString().slice(0, 5)
+    const entryUpdates = {
+      status: 'running' as const,
+      start_time: nowTime,
+      end_time: null,
+    }
+
+    setLines(prev => prev.map(item =>
+      item.entryId === line.entryId
+        ? {
+            ...item,
+            status: 'running',
+            startTime: line.type === 'production' ? nowTime : '',
+            endTime: '',
+          }
+        : item
+    ))
+
+    const { error: entryError } = await supabase
+      .from(table)
+      .update(entryUpdates)
+      .eq('id', line.entryId)
+
+    if (entryError) {
+      console.error('Start entry error:', entryError)
+      fetchData()
+      return
+    }
+
+    fetchData()
   }
 
   const { user, loading: authLoading, canAccessLine } = useAuth()
@@ -585,7 +710,7 @@ export default function Dashboard() {
               {/* Production Cards */}
               <div className="cartoon-cards-grid">
                 {prodLines.map((line) => (
-                  <Card key={`${line.type}-${line.id}`} line={line} onEdit={handleEdit} onQuickAdd={handleQuickAdd} />
+                  <Card key={`${line.type}-${line.id}`} line={line} onEdit={handleEdit} onQuickAdd={handleQuickAdd} onStartEntry={handleStartEntry} />
                 ))}
               </div>
             </div>
@@ -629,7 +754,7 @@ export default function Dashboard() {
               {/* Finishing Cards */}
               <div className="cartoon-cards-grid">
                 {finLines.map((line) => (
-                  <Card key={`${line.type}-${line.id}`} line={line} onEdit={handleEdit} onQuickAdd={handleQuickAdd} />
+                  <Card key={`${line.type}-${line.id}`} line={line} onEdit={handleEdit} onQuickAdd={handleQuickAdd} onStartEntry={handleStartEntry} />
                 ))}
               </div>
             </div>

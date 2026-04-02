@@ -31,6 +31,8 @@ const MODE_CONFIG = {
   production: {
     table: 'production_entries',
     department: 'production',
+    usesShiftTracking: true,
+    usesTimeTracking: true,
     title: 'ข้อมูลการผลิต',
     lineLabel: 'สายการผลิต',
     completedLabel: 'ผลิตแล้ว (ชิ้น)',
@@ -42,6 +44,8 @@ const MODE_CONFIG = {
   finishing: {
     table: 'finishing_entries',
     department: 'finishing',
+    usesShiftTracking: false,
+    usesTimeTracking: false,
     title: 'ข้อมูลการประกอบ',
     lineLabel: 'สายประกอบ',
     completedLabel: 'ประกอบแล้ว (ชิ้น)',
@@ -114,9 +118,9 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
           target_qty: data.target_qty,
           completed_qty: data.completed_qty,
           status: data.status,
-          shift: data.shift,
-          start_time: data.start_time || '06:00',
-          end_time: data.end_time || '',
+          shift: config.usesShiftTracking ? data.shift : 'morning',
+          start_time: config.usesTimeTracking ? (data.start_time || '06:00') : '06:00',
+          end_time: config.usesTimeTracking ? (data.end_time || '') : '',
           operator: data.operator || '',
           remarks: data.remarks || '',
           image_url: data.image_url || '',
@@ -138,7 +142,9 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
         target_qty: 0,
         completed_qty: 0,
         status: 'running',
-        shift: (typeof window !== 'undefined' ? localStorage.getItem('pf_default_shift') as 'morning' | 'night' : null) || 'morning',
+        shift: config.usesShiftTracking
+          ? ((typeof window !== 'undefined' ? localStorage.getItem('pf_default_shift') as 'morning' | 'night' : null) || 'morning')
+          : 'morning',
         start_time: '06:00',
         end_time: '',
         operator: typeof window !== 'undefined' ? localStorage.getItem('pf_default_operator_quick') || '' : '',
@@ -151,7 +157,7 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
     fetchPartNumbers()
     fetchExistingEntry()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, lineId, existingEntryId])
+  }, [config.usesShiftTracking, config.usesTimeTracking, existingEntryId, getLineName, isOpen, lineId])
 
   const handlePartNumberSelect = (partId: string) => {
     if (!partId) {
@@ -176,7 +182,9 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
     try {
       const payload = {
         ...formData,
-        end_time: formData.end_time || null,
+        shift: config.usesShiftTracking ? formData.shift : 'morning',
+        start_time: config.usesTimeTracking ? formData.start_time : '06:00',
+        end_time: config.usesTimeTracking ? (formData.end_time || null) : null,
         part_number_id: formData.part_number_id || null,
       }
 
@@ -189,8 +197,10 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
       }
 
       // Save defaults for next time
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && config.usesShiftTracking) {
         localStorage.setItem('pf_default_shift', formData.shift)
+      }
+      if (typeof window !== 'undefined') {
         localStorage.setItem('pf_default_operator_quick', formData.operator)
       }
 
@@ -391,43 +401,46 @@ export default function QuickEntryModal({ isOpen, onClose, onSuccess, lineId, li
                 />
               </div>
 
-              {/* Shift */}
-              <div>
-                <label style={LABEL_STYLE}>กะ</label>
-                <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
-                    <input type="radio" name="modal-shift" value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
-                    ☀️ เช้า
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
-                    <input type="radio" name="modal-shift" value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
-                    🌙 กลางคืน
-                  </label>
+              {config.usesShiftTracking && (
+                <div>
+                  <label style={LABEL_STYLE}>กะ</label>
+                  <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
+                      <input type="radio" name="modal-shift" value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
+                      ☀️ เช้า
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
+                      <input type="radio" name="modal-shift" value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
+                      🌙 กลางคืน
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Start Time */}
-              <div>
-                <label style={LABEL_STYLE}>⏱ เวลาเริ่ม *</label>
-                <input
-                  type="time"
-                  value={formData.start_time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                  style={INPUT_STYLE}
-                  required
-                />
-              </div>
+              {config.usesTimeTracking && (
+                <>
+                  <div>
+                    <label style={LABEL_STYLE}>⏱ เวลาเริ่ม *</label>
+                    <input
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                      style={INPUT_STYLE}
+                      required
+                    />
+                  </div>
 
-              {/* End Time */}
-              <div>
-                <label style={LABEL_STYLE}>⏱ เวลาสิ้นสุด</label>
-                <input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
-                  style={INPUT_STYLE}
-                />
-              </div>
+                  <div>
+                    <label style={LABEL_STYLE}>⏱ เวลาสิ้นสุด</label>
+                    <input
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
+                      style={INPUT_STYLE}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Remarks */}
               <div className="modal-form-full">

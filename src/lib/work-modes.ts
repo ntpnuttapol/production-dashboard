@@ -16,6 +16,8 @@ export interface LineOption {
 interface WorkModeMeta {
   table: 'production_entries' | 'finishing_entries'
   department: WorkMode
+  usesShiftTracking: boolean
+  usesTimeTracking: boolean
   pageTitle: string
   pageDescription: string
   pageAccentColor: string
@@ -39,6 +41,8 @@ export const WORK_MODE_META: Record<WorkMode, WorkModeMeta> = {
   production: {
     table: 'production_entries',
     department: 'production',
+    usesShiftTracking: true,
+    usesTimeTracking: true,
     pageTitle: '📝 PRODUCTION',
     pageDescription: 'บันทึกข้อมูลการผลิตประจำวัน',
     pageAccentColor: 'var(--color-running)',
@@ -64,6 +68,8 @@ export const WORK_MODE_META: Record<WorkMode, WorkModeMeta> = {
   finishing: {
     table: 'finishing_entries',
     department: 'finishing',
+    usesShiftTracking: false,
+    usesTimeTracking: false,
     pageTitle: '🔧 FINISHING',
     pageDescription: 'บันทึกข้อมูลการประกอบประจำวัน',
     pageAccentColor: 'var(--color-purple)',

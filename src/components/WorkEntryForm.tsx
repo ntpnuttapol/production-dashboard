@@ -112,14 +112,18 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
     if (typeof window === 'undefined') return
 
     const storedOperator = localStorage.getItem('pf_default_operator_full') || ''
-    const storedShift = normalizeStoredShift(localStorage.getItem('pf_default_shift_full'))
+    const storedShift = config.usesShiftTracking
+      ? normalizeStoredShift(localStorage.getItem('pf_default_shift_full'))
+      : 'morning'
 
     setFormData(prev => ({
       ...prev,
       operator: storedOperator || prev.operator,
       shift: storedShift,
+      start_time: config.usesTimeTracking ? prev.start_time : DEFAULT_START_TIME,
+      end_time: config.usesTimeTracking ? prev.end_time : '',
     }))
-  }, [editData, mode])
+  }, [config.usesShiftTracking, config.usesTimeTracking, editData, mode])
 
   useEffect(() => {
     if (editData || currentLines.length === 0) return
@@ -188,7 +192,9 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
     try {
       const payload = {
         ...formData,
-        end_time: formData.end_time || null,
+        shift: config.usesShiftTracking ? formData.shift : 'morning',
+        start_time: config.usesTimeTracking ? formData.start_time : DEFAULT_START_TIME,
+        end_time: config.usesTimeTracking ? (formData.end_time || null) : null,
         part_number_id: formData.part_number_id || null,
       }
 
@@ -202,7 +208,9 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('pf_default_operator_full', formData.operator)
-        localStorage.setItem('pf_default_shift_full', formData.shift)
+        if (config.usesShiftTracking) {
+          localStorage.setItem('pf_default_shift_full', formData.shift)
+        }
       }
 
       onSuccess?.()
@@ -308,29 +316,35 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
           </select>
         </div>
 
-        <div>
-          <label style={LABEL_STYLE}>กะการทำงาน *</label>
-          <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input type="radio" name={`shift-${mode}`} value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
-              <span style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>☀️ กะเช้า</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input type="radio" name={`shift-${mode}`} value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
-              <span style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>🌙 กะกลางคืน</span>
-            </label>
+        {config.usesShiftTracking && (
+          <div>
+            <label style={LABEL_STYLE}>กะการทำงาน *</label>
+            <div style={{ display: 'flex', gap: '16px', paddingTop: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input type="radio" name={`shift-${mode}`} value="morning" checked={formData.shift === 'morning'} onChange={() => setFormData(prev => ({ ...prev, shift: 'morning' }))} />
+                <span style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>☀️ กะเช้า</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input type="radio" name={`shift-${mode}`} value="night" checked={formData.shift === 'night'} onChange={() => setFormData(prev => ({ ...prev, shift: 'night' }))} />
+                <span style={{ fontSize: '14px', color: 'var(--color-text-primary)', fontWeight: '600' }}>🌙 กะกลางคืน</span>
+              </label>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div>
-          <label style={LABEL_STYLE}>เวลาเริ่ม *</label>
-          <input type="time" value={formData.start_time} onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))} style={INPUT_STYLE} required />
-        </div>
+        {config.usesTimeTracking && (
+          <>
+            <div>
+              <label style={LABEL_STYLE}>เวลาเริ่ม *</label>
+              <input type="time" value={formData.start_time} onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))} style={INPUT_STYLE} required />
+            </div>
 
-        <div>
-          <label style={LABEL_STYLE}>เวลาสิ้นสุด</label>
-          <input type="time" value={formData.end_time} onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))} style={INPUT_STYLE} />
-        </div>
+            <div>
+              <label style={LABEL_STYLE}>เวลาสิ้นสุด</label>
+              <input type="time" value={formData.end_time} onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))} style={INPUT_STYLE} />
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{ marginTop: '16px' }}>

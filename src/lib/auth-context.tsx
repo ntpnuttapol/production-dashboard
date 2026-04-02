@@ -130,43 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: data.error || 'SSO login failed' }
       }
 
-      // For now, create a session from Hub user data
-      // In production, you should map Hub user to local user via employee_code or email
-      const hubEmail = data.hubUser?.hubEmail || ''
-      const hubMetadata = data.hubUser?.hubUserMetadata || {}
-      
-      // Try to get employee code from metadata or email prefix
-      const employeeCode = hubMetadata.employee_code || hubMetadata.employeeId || hubEmail.split('@')[0] || 'HUB_USER'
-      
-      // Look up local user by employee code
-      const { data: localUser, error: lookupError } = await supabase
-        .from('profiles')
-        .select('id, employee_code, full_name, role, department, allowed_lines')
-        .eq('employee_code', employeeCode.toUpperCase())
-        .single()
-
-      if (lookupError || !localUser) {
+      const localUser = data.localUser
+      if (!localUser?.id) {
         clearSession()
-        return {
-          error: `ยังไม่ได้กำหนดสิทธิ์แผนกสำหรับรหัสพนักงาน ${employeeCode.toUpperCase()} ใน Project Finishing กรุณาให้ Admin เพิ่มผู้ใช้และกำหนดแผนกก่อนใช้งาน`
-        }
-      }
-
-      if (!localUser.department) {
-        clearSession()
-        return {
-          error: `บัญชี ${employeeCode.toUpperCase()} ยังไม่ได้กำหนดแผนกใน Project Finishing กรุณาติดต่อ Admin`
-        }
+        return { error: 'ไม่พบข้อมูลผู้ใช้ใน Project Finishing' }
       }
 
       // Use mapped local user
       const appUser: AppUser = {
         id: localUser.id,
-        employeeId: localUser.employee_code || '',
-        fullName: localUser.full_name || '',
+        employeeId: localUser.employeeId || '',
+        fullName: localUser.fullName || '',
         role: localUser.role === 'admin' ? 'admin' : 'user',
-        department: localUser.department || 'production',
-        allowedLines: localUser.allowed_lines || []
+        department: localUser.department || 'all',
+        allowedLines: localUser.allowedLines || []
       }
 
       setUser(appUser)

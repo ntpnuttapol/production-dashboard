@@ -79,23 +79,7 @@ ALTER TABLE part_numbers ADD COLUMN IF NOT EXISTS std_qty INTEGER NOT NULL DEFAU
 ALTER TABLE part_numbers ADD COLUMN IF NOT EXISTS unit TEXT NOT NULL DEFAULT 'pcs';
 
 
--- 4. Create Planning Entries Table
-CREATE TABLE IF NOT EXISTS planning_entries (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  plan_date DATE NOT NULL,
-  department TEXT NOT NULL CHECK (department IN ('production', 'finishing')),
-  line_id TEXT NOT NULL,
-  product_name TEXT NOT NULL,
-  lot_number TEXT NOT NULL,
-  target_qty INTEGER NOT NULL DEFAULT 0,
-  priority TEXT NOT NULL DEFAULT 'medium',
-  notes TEXT,
-  created_by TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
--- 5. Create Production Entries Table
+-- 4. Create Production Entries Table
 CREATE TABLE IF NOT EXISTS production_entries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   line_id TEXT NOT NULL,
@@ -117,7 +101,7 @@ CREATE TABLE IF NOT EXISTS production_entries (
 ALTER TABLE production_entries ADD COLUMN IF NOT EXISTS line_name TEXT;
 ALTER TABLE production_entries ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
--- 6. Create Finishing Entries Table
+-- 5. Create Finishing Entries Table
 CREATE TABLE IF NOT EXISTS finishing_entries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   line_id TEXT NOT NULL,
@@ -138,48 +122,17 @@ CREATE TABLE IF NOT EXISTS finishing_entries (
 );
 
 
--- 7. Add Foreign Key Relationships (Link Tables)
-DO $$ 
-BEGIN
-    -- Add part_number_id to planning_entries
-    BEGIN
-        ALTER TABLE planning_entries ADD COLUMN part_number_id UUID REFERENCES part_numbers(id);
-    EXCEPTION
-        WHEN duplicate_column THEN RAISE NOTICE 'column part_number_id already exists in planning_entries';
-        WHEN others THEN RAISE NOTICE 'Skipping part_number_id due to other error (possibly foreign key constraint)';
-    END;
-
-    -- Add plan_id to production_entries
-    BEGIN
-        ALTER TABLE production_entries ADD COLUMN plan_id UUID REFERENCES planning_entries(id);
-    EXCEPTION
-        WHEN duplicate_column THEN RAISE NOTICE 'column plan_id already exists in production_entries';
-    END;
-
-    -- Add plan_id to finishing_entries
-    BEGIN
-        ALTER TABLE finishing_entries ADD COLUMN plan_id UUID REFERENCES planning_entries(id);
-    EXCEPTION
-        WHEN duplicate_column THEN RAISE NOTICE 'column plan_id already exists in finishing_entries';
-    END;
-END $$;
-
--- 8. Enable RLS (Security)
+-- 6. Enable RLS (Security)
 ALTER TABLE part_numbers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE planning_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE production_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE finishing_entries ENABLE ROW LEVEL SECURITY;
 
--- 9. Create Generic Public Policies (For Development Simplicity)
+-- 7. Create Generic Public Policies (For Development Simplicity)
 -- Note: In production, you might want stricter policies.
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'part_numbers' AND policyname = 'Public Access parts') THEN
     CREATE POLICY "Public Access parts" ON part_numbers FOR ALL USING (true);
-  END IF;
-  
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'planning_entries' AND policyname = 'Public Access planning') THEN
-    CREATE POLICY "Public Access planning" ON planning_entries FOR ALL USING (true);
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'production_entries' AND policyname = 'Public Access production') THEN
@@ -192,7 +145,7 @@ BEGIN
 END $$;
 
 
--- 10. Update Trigger Function
+-- 8. Update Trigger Function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -203,9 +156,6 @@ $$ language 'plpgsql';
 
 DROP TRIGGER IF EXISTS update_part_numbers_mod ON part_numbers;
 CREATE TRIGGER update_part_numbers_mod BEFORE UPDATE ON part_numbers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_planning_entries_mod ON planning_entries;
-CREATE TRIGGER update_planning_entries_mod BEFORE UPDATE ON planning_entries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_production_entries_mod ON production_entries;
 CREATE TRIGGER update_production_entries_mod BEFORE UPDATE ON production_entries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

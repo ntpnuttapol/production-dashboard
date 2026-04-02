@@ -39,19 +39,6 @@ export const SHIFT_CONFIG = {
   night: { label: 'กะกลางคืน', icon: '🌙' },
 } as const
 
-export const PLANNING_PRIORITY_CONFIG = {
-  high: { label: 'สูง', color: '#EF4444', bg: '#FEE2E2', icon: '🔴' },
-  medium: { label: 'กลาง', color: '#F59E0B', bg: '#FEF3C7', icon: '🟡' },
-  low: { label: 'ต่ำ', color: '#10B981', bg: '#D1FAE5', icon: '🟢' },
-} as const
-
-export const PLANNING_STATUS_CONFIG = {
-  pending: { label: 'รอดำเนินการ', color: '#6B7280', bg: '#F3F4F6' },
-  in_progress: { label: 'กำลังดำเนินการ', color: '#0EA5E9', bg: '#E0F2FE' },
-  completed: { label: 'เสร็จสิ้น', color: '#10B981', bg: '#D1FAE5' },
-  cancelled: { label: 'ยกเลิก', color: '#EF4444', bg: '#FEE2E2' },
-} as const
-
 export const DEPT_CONFIG = {
   production: { label: 'Production', color: '#F59E0B', bg: '#FEF3C7', icon: '🏭' },
   finishing: { label: 'Finishing', color: '#8B5CF6', bg: '#EDE9FE', icon: '🔧' },
@@ -220,25 +207,7 @@ export interface WorkEntry {
   operator: string
   remarks: string
   image_url: string
-  plan_id: string | null
   part_number_id: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface PlanningEntry {
-  id: string
-  plan_date: string
-  department: 'production' | 'finishing'
-  line_id: string
-  part_number_id: string | null
-  product_name: string
-  lot_number: string
-  target_qty: number
-  priority: 'high' | 'medium' | 'low'
-  notes: string
-  created_by: string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
   created_at: string
   updated_at: string
 }
