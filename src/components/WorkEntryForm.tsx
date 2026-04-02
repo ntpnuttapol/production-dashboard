@@ -2,13 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import {
-  PRODUCTION_LINES,
-  FINISHING_LINES,
-  INPUT_STYLE,
-  LABEL_STYLE,
-} from '@/lib/constants'
+import { INPUT_STYLE, LABEL_STYLE } from '@/lib/constants'
 import { useLines } from '@/lib/lines-context'
+import { getDefaultLineSelection, WORK_MODE_META, type LineOption, type WorkMode } from '@/lib/work-modes'
 
 interface PartNumberOption {
   id: string
@@ -37,116 +33,112 @@ interface WorkEntryFormData {
 }
 
 interface WorkEntryFormProps {
-  mode: 'production' | 'finishing'
+  mode: WorkMode
   onSuccess?: () => void
   editData?: WorkEntryFormData & { id: string }
 }
 
-// Mode-specific config
-const MODE_CONFIG = {
-  production: {
-    lines: PRODUCTION_LINES,
-    defaultLine: 'LINE-01',
-    defaultLineName: 'สายการผลิต A',
-    table: 'production_entries',
-    department: 'production',
-    title: 'ข้อมูลการผลิต',
-    lineLabel: 'สายการผลิต',
-    completedLabel: 'ผลิตแล้ว (ชิ้น)',
-    statusLabels: { running: '🟡 กำลังผลิต', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' },
-    gradient: 'linear-gradient(90deg, #F59E0B, #10B981)',
-    accentColor: '#F59E0B',
-    planBg: '#F59E0B15',
-    planBorder: '#F59E0B',
-    planLabelColor: '#F59E0B',
-    completedInputBorder: '#10B981',
-    completedInputBg: '#10B98120',
-    storageBucket: 'production-images',
-    filePrefix: '',
-  },
-  finishing: {
-    lines: FINISHING_LINES,
-    defaultLine: 'FINISH-01',
-    defaultLineName: 'สายประกอบ A',
-    table: 'finishing_entries',
-    department: 'finishing',
-    title: 'ข้อมูลการประกอบ',
-    lineLabel: 'สายประกอบ',
-    completedLabel: 'ประกอบแล้ว (ชิ้น)',
-    statusLabels: { running: '🟣 กำลังประกอบ', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' },
-    gradient: 'linear-gradient(90deg, #8B5CF6, #6366F1)',
-    accentColor: '#8B5CF6',
-    planBg: '#8B5CF615',
-    planBorder: '#8B5CF6',
-    planLabelColor: '#8B5CF6',
-    completedInputBorder: '#8B5CF6',
-    completedInputBg: '#8B5CF620',
-    storageBucket: 'production-images',
-    filePrefix: 'finishing-',
-  },
-} as const
+const DEFAULT_START_TIME = '06:00'
+
+function normalizeStoredShift(value: string | null): WorkEntryFormData['shift'] {
+  return value === 'night' ? 'night' : 'morning'
+}
+
+function createFormData(
+  defaultLine: LineOption,
+  editData?: WorkEntryFormData & { id: string },
+  operator = '',
+  shift: WorkEntryFormData['shift'] = 'morning',
+): WorkEntryFormData {
+  return {
+    line_id: editData?.line_id || defaultLine.id,
+    line_name: editData?.line_name || defaultLine.name,
+    product_name: editData?.product_name || '',
+    lot_number: editData?.lot_number || '',
+    target_qty: editData?.target_qty || 0,
+    completed_qty: editData?.completed_qty || 0,
+    status: editData?.status || 'running',
+    shift: editData?.shift || shift,
+    start_time: editData?.start_time || DEFAULT_START_TIME,
+    end_time: editData?.end_time || '',
+    operator: editData?.operator || operator,
+    remarks: editData?.remarks || '',
+    image_url: editData?.image_url || '',
+    part_number_id: editData?.part_number_id || null,
+  }
+}
 
 export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFormProps) {
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const config = MODE_CONFIG[mode]
+  const config = WORK_MODE_META[mode]
   const { productionLines, finishingLines, getLineName } = useLines()
 
   const currentLines = mode === 'production' ? productionLines : finishingLines
-  const defaultLineFallback = currentLines.length > 0 ? currentLines[0].id : ''
-  const defaultLineNameFallback = currentLines.length > 0 ? currentLines[0].name : ''
+  const defaultLine = getDefaultLineSelection(mode, currentLines)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(editData?.image_url || null)
   const [partNumbers, setPartNumbers] = useState<PartNumberOption[]>([])
 
-  const [formData, setFormData] = useState<WorkEntryFormData>({
-    line_id: editData?.line_id || defaultLineFallback,
-    line_name: editData?.line_name || defaultLineNameFallback,
-    product_name: editData?.product_name || '',
-    lot_number: editData?.lot_number || '',
-    target_qty: editData?.target_qty || 0,
-    completed_qty: editData?.completed_qty || 0,
-    status: editData?.status || 'running',
-    shift: editData?.shift || 'morning',
-    start_time: editData?.start_time || '06:00',
-    end_time: editData?.end_time || '',
-    operator: editData?.operator || '',
-    remarks: editData?.remarks || '',
-    image_url: editData?.image_url || '',
-    part_number_id: editData?.part_number_id || null,
-  })
+  const [formData, setFormData] = useState<WorkEntryFormData>(() => createFormData(getDefaultLineSelection(mode, []), editData))
 
   useEffect(() => {
     const fetchPartNumbers = async () => {
-      // Primary: simple query that always works
       const { data, error } = await supabase
         .from('part_numbers')
         .select('id, part_number, part_name, customer_id, std_qty, unit')
         .eq('is_active', true)
-        .eq('department', mode)
+        .eq('department', config.department)
         .order('part_number', { ascending: true })
-      
-      console.log('[WorkEntryForm] fetchPartNumbers:', { mode, data: data?.length, error })
-      if (data) setPartNumbers(data as PartNumberOption[])
-    }
-    fetchPartNumbers()
 
-    if (!editData) {
-      if (typeof window !== 'undefined') {
-        const storedOperator = localStorage.getItem('pf_default_operator_full')
-        const storedShift = localStorage.getItem('pf_default_shift_full')
-        if (storedOperator) {
-          setFormData(prev => ({ ...prev, operator: storedOperator }))
-        }
-        if (storedShift) {
-          setFormData(prev => ({ ...prev, shift: storedShift as 'morning' | 'night' }))
-        }
-      }
+      if (data) setPartNumbers(data as PartNumberOption[])
+      if (error) console.error('Fetch part numbers error:', error)
     }
+
+    fetchPartNumbers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [mode])
+
+  useEffect(() => {
+    setImagePreview(editData?.image_url || null)
+
+    if (editData) {
+      setFormData(createFormData({ id: editData.line_id, name: editData.line_name }, editData))
+      return
+    }
+
+    if (typeof window === 'undefined') return
+
+    const storedOperator = localStorage.getItem('pf_default_operator_full') || ''
+    const storedShift = normalizeStoredShift(localStorage.getItem('pf_default_shift_full'))
+
+    setFormData(prev => ({
+      ...prev,
+      operator: storedOperator || prev.operator,
+      shift: storedShift,
+    }))
+  }, [editData, mode])
+
+  useEffect(() => {
+    if (editData || currentLines.length === 0) return
+
+    setFormData(prev => {
+      const selectedLine = currentLines.find(line => line.id === prev.line_id)
+
+      if (selectedLine) {
+        if (prev.line_name === selectedLine.name) return prev
+        return { ...prev, line_name: selectedLine.name }
+      }
+
+      return {
+        ...prev,
+        line_id: defaultLine.id,
+        line_name: defaultLine.name,
+      }
+    })
+  }, [currentLines, defaultLine.id, defaultLine.name, editData])
 
   const handlePartNumberSelect = (partId: string) => {
     if (!partId) {
@@ -216,22 +208,7 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
       onSuccess?.()
 
       if (!editData) {
-        setFormData({
-          line_id: defaultLineFallback,
-          line_name: defaultLineNameFallback,
-          product_name: '',
-          lot_number: '',
-          target_qty: 0,
-          completed_qty: 0,
-          status: 'running',
-          shift: 'morning',
-          start_time: '06:00',
-          end_time: '',
-          operator: formData.operator, // persist auto-fill visually in form
-          remarks: '',
-          image_url: '',
-          part_number_id: null,
-        })
+        setFormData(createFormData(defaultLine, undefined, formData.operator, formData.shift))
         setImagePreview(null)
       }
     } catch (err) {
@@ -244,7 +221,7 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
   return (
     <form onSubmit={handleSubmit} className="cartoon-card" style={{ padding: '32px' }}>
       <h2 className="cartoon-font" style={{ margin: '0 0 24px', fontSize: '18px', color: config.accentColor }}>
-        {editData ? '✏️ EDIT' : `➕ ${config.title.toUpperCase()}`}
+        {editData ? '✏️ EDIT' : `➕ ${config.formTitle.toUpperCase()}`}
       </h2>
 
       {error && <div style={{ padding: '12px', background: '#7F1D1D', border: '2px solid #EF4444', color: '#FCA5A5', marginBottom: '16px', fontSize: '14px' }}>⚠️ {error}</div>}
@@ -325,9 +302,9 @@ export default function WorkEntryForm({ mode, onSuccess, editData }: WorkEntryFo
         <div>
           <label style={LABEL_STYLE}>สถานะ *</label>
           <select value={formData.status} onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'running' | 'completed' | 'idle' }))} style={INPUT_STYLE} required>
-            <option value="running">{config.statusLabels.running}</option>
-            <option value="completed">{config.statusLabels.completed}</option>
-            <option value="idle">{config.statusLabels.idle}</option>
+            <option value="running">{config.statusOptions.running}</option>
+            <option value="completed">{config.statusOptions.completed}</option>
+            <option value="idle">{config.statusOptions.idle}</option>
           </select>
         </div>
 

@@ -3,40 +3,30 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  PRODUCTION_STATUS_CONFIG,
-  FINISHING_STATUS_CONFIG,
   SHIFT_CONFIG,
   INPUT_STYLE,
   type WorkEntry,
 } from '@/lib/constants'
+import { WORK_MODE_META, type WorkMode, type WorkStatus } from '@/lib/work-modes'
 
 interface WorkEntryTableProps {
-  mode: 'production' | 'finishing'
+  mode: WorkMode
   refreshTrigger?: number
   onEdit?: (entry: WorkEntry) => void
 }
 
-const MODE_CONFIG = {
-  production: {
-    table: 'production_entries',
-    title: '📋 ประวัติการผลิต',
-    lineLabel: 'สายผลิต',
-    statusConfig: PRODUCTION_STATUS_CONFIG,
-  },
-  finishing: {
-    table: 'finishing_entries',
-    title: '📋 ประวัติการประกอบ',
-    lineLabel: 'สายประกอบ',
-    statusConfig: FINISHING_STATUS_CONFIG,
-  },
-} as const
+interface EntryFilterState {
+  status: 'all' | WorkStatus
+  shift: 'all' | keyof typeof SHIFT_CONFIG
+  date: string
+}
 
 export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEntryTableProps) {
   const supabase = createClient()
-  const config = MODE_CONFIG[mode]
+  const config = WORK_MODE_META[mode]
   const [entries, setEntries] = useState<WorkEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState({ status: 'all', shift: 'all', date: '' })
+  const [filter, setFilter] = useState<EntryFilterState>({ status: 'all', shift: 'all', date: '' })
 
   const fetchEntries = async () => {
     setLoading(true)
@@ -65,25 +55,26 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-  const statusLabels = mode === 'production'
-    ? { running: '🟡 กำลังผลิต', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' }
-    : { running: '🟣 กำลังประกอบ', completed: '🟢 เสร็จสิ้น', idle: '⚫ รอดำเนินการ' }
-
-  const filterStyle: React.CSSProperties = { padding: '10px 16px', border: '2px solid var(--color-border)', borderRadius: '12px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }
+  const filterStyle: React.CSSProperties = {
+    ...INPUT_STYLE,
+    width: 'auto',
+    minWidth: '150px',
+    background: 'var(--color-bg-primary)',
+  }
 
   return (
     <div className="cartoon-card" style={{ padding: '32px' }}>
-      <h2 className="cartoon-font" style={{ margin: '0 0 24px', fontSize: '18px', color: 'var(--color-running)' }}>{config.title}</h2>
+      <h2 className="cartoon-font" style={{ margin: '0 0 24px', fontSize: '18px', color: config.accentColor }}>{config.tableTitle}</h2>
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <select value={filter.status} onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))} style={filterStyle}>
+        <select value={filter.status} onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value as EntryFilterState['status'] }))} style={filterStyle}>
           <option value="all">ทุกสถานะ</option>
-          <option value="running">{statusLabels.running}</option>
-          <option value="completed">{statusLabels.completed}</option>
-          <option value="idle">{statusLabels.idle}</option>
+          <option value="running">{config.statusOptions.running}</option>
+          <option value="completed">{config.statusOptions.completed}</option>
+          <option value="idle">{config.statusOptions.idle}</option>
         </select>
-        <select value={filter.shift} onChange={(e) => setFilter(prev => ({ ...prev, shift: e.target.value }))} style={filterStyle}>
+        <select value={filter.shift} onChange={(e) => setFilter(prev => ({ ...prev, shift: e.target.value as EntryFilterState['shift'] }))} style={filterStyle}>
           <option value="all">ทุกกะ</option>
           <option value="morning">☀️ กะเช้า</option>
           <option value="night">🌙 กะกลางคืน</option>
@@ -105,7 +96,7 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
             <thead>
               <tr>
                 <th>วันที่</th>
-                <th>{config.lineLabel}</th>
+                <th>{config.lineTableLabel}</th>
                 <th>ผลิตภัณฑ์</th>
                 <th>ล็อต</th>
                 <th style={{ textAlign: 'center' }}>จำนวน</th>
@@ -125,7 +116,7 @@ export default function WorkEntryTable({ mode, refreshTrigger, onEdit }: WorkEnt
                   <tr key={entry.id}>
                     <td style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>{formatDate(entry.created_at)}</td>
                     <td>
-                      <span className="cartoon-font" style={{ color: 'var(--color-running)' }}>{entry.line_id}</span>
+                      <span className="cartoon-font" style={{ color: config.accentColor }}>{entry.line_id}</span>
                       <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{entry.line_name}</div>
                     </td>
                     <td style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{entry.product_name}</td>
