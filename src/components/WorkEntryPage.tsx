@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Navbar from '@/components/Navbar'
 import WorkEntryForm from '@/components/WorkEntryForm'
 import WorkEntryTable from '@/components/WorkEntryTable'
 import { type WorkEntry } from '@/lib/constants'
 import { WORK_MODE_META, type WorkMode } from '@/lib/work-modes'
+import { useAuth } from '@/lib/auth-context'
+import { useRouter } from 'next/navigation'
 
 interface WorkEntryPageProps {
   mode: WorkMode
@@ -13,9 +15,24 @@ interface WorkEntryPageProps {
 
 export default function WorkEntryPage({ mode }: WorkEntryPageProps) {
   const config = WORK_MODE_META[mode]
+  const router = useRouter()
+  const { user, loading: authLoading, canAccessDepartment } = useAuth()
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [editData, setEditData] = useState<WorkEntry | undefined>(undefined)
   const [showForm, setShowForm] = useState(false)
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    if (!canAccessDepartment(mode)) {
+      router.push('/')
+    }
+  }, [authLoading, canAccessDepartment, mode, router, user])
 
   const handleSuccess = () => {
     setRefreshTrigger(prev => prev + 1)
@@ -27,6 +44,24 @@ export default function WorkEntryPage({ mode }: WorkEntryPageProps) {
     setEditData(entry)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  if (authLoading || !user || !canAccessDepartment(mode)) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}>
+        <Navbar />
+        <div className="cartoon-container">
+          <div className="cartoon-card" style={{ padding: '32px', textAlign: 'center' }}>
+            <div className="cartoon-font" style={{ fontSize: '18px', color: config.accentColor, marginBottom: '8px' }}>
+              ⏳ กำลังตรวจสอบสิทธิ์
+            </div>
+            <div style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+              กรุณารอสักครู่...
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

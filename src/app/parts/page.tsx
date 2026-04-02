@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import { INPUT_STYLE, LABEL_STYLE } from '@/lib/constants'
+import { useAuth } from '@/lib/auth-context'
 
 interface Customer {
   id: string
@@ -46,6 +47,7 @@ const EMPTY_FORM = {
 
 export default function PartsPage() {
   const supabase = createClient()
+  const { user, loading: authLoading, canAccessDepartment } = useAuth()
   const [activeTab, setActiveTab] = useState<DeptTab>('production')
   const [parts, setParts] = useState<PartNumber[]>([])
   const [activeCustomers, setActiveCustomers] = useState<Customer[]>([])
@@ -82,6 +84,22 @@ export default function PartsPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchData() }, [])
+
+  const visibleDeptTabs = (Object.entries(DEPT_CONFIG) as [DeptTab, typeof DEPT_CONFIG[DeptTab]][])
+    .filter(([dept]) => !user || canAccessDepartment(dept))
+
+  useEffect(() => {
+    if (authLoading || !user) return
+
+    const defaultTab: DeptTab = user.department === 'finishing' ? 'finishing' : 'production'
+
+    if (!canAccessDepartment(activeTab)) {
+      setActiveTab(defaultTab)
+      setShowForm(false)
+      setEditData(null)
+      setFormData(prev => ({ ...prev, department: defaultTab }))
+    }
+  }, [activeTab, authLoading, canAccessDepartment, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -202,8 +220,11 @@ export default function PartsPage() {
                     onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value as DeptTab }))}
                     style={{ ...INPUT_STYLE, borderColor: tabConfig.color }}
                   >
-                    <option value="production">🏭 ผลิต (Production)</option>
-                    <option value="finishing">🔧 ประกอบ (Finishing)</option>
+                    {visibleDeptTabs.map(([dept, cfg]) => (
+                      <option key={dept} value={dept}>
+                        {cfg.icon} {cfg.label} ({dept === 'production' ? 'Production' : 'Finishing'})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -321,7 +342,7 @@ export default function PartsPage() {
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <div className="page-toolbar-tabs">
-                {(Object.entries(DEPT_CONFIG) as [DeptTab, typeof DEPT_CONFIG[DeptTab]][]).map(([key, cfg]) => (
+                {visibleDeptTabs.map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => { setActiveTab(key); setShowForm(false); setEditData(null) }}

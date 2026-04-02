@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import type { WorkMode } from '@/lib/work-modes'
 
 const SESSION_KEY = 'app_user_session'
 
@@ -21,6 +22,7 @@ interface AuthContextType {
   loginWithSso: (ssoToken: string, hubOrigin?: string | null) => Promise<{ error: string | null; user?: AppUser }>
   logout: () => Promise<void>
   canAccessLine: (lineId: string) => boolean
+  canAccessDepartment: (department: WorkMode) => boolean
   isAdmin: boolean
 }
 
@@ -31,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   loginWithSso: async () => ({ error: 'Not initialized' }),
   logout: async () => {},
   canAccessLine: () => false,
+  canAccessDepartment: () => false,
   isAdmin: false,
 })
 
@@ -201,10 +204,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false
   }
 
+  const canAccessDepartment = (department: WorkMode): boolean => {
+    if (!user) return false
+    if (user.role === 'admin') return true
+    if (user.department === 'all') return true
+    return user.department === department
+  }
+
   const isAdmin = user?.role === 'admin'
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithSso, logout, canAccessLine, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithSso, logout, canAccessLine, canAccessDepartment, isAdmin }}>
       {children}
     </AuthContext.Provider>
   )

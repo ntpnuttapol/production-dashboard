@@ -5,11 +5,20 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { getHubUrl } from '@/lib/public-env'
+import type { WorkMode } from '@/lib/work-modes'
 
-const NAV_ITEMS = [
+interface NavItem {
+    href: string
+    label: string
+    icon: string
+    color: string
+    department?: WorkMode
+}
+
+const NAV_ITEMS: NavItem[] = [
     { href: '/', label: 'Dashboard', icon: '🖥️', color: '#F59E0B' },
-    { href: '/production', label: 'Produce', icon: '📝', color: '#F59E0B' },
-    { href: '/finishing', label: 'Finish', icon: '🔧', color: '#8B5CF6' },
+    { href: '/production', label: 'Produce', icon: '📝', color: '#F59E0B', department: 'production' },
+    { href: '/finishing', label: 'Finish', icon: '🔧', color: '#8B5CF6', department: 'finishing' },
     { href: '/analytics', label: 'Analytics', icon: '📊', color: '#3B82F6' },
     { href: '/parts', label: 'Parts', icon: '📦', color: '#22C55E' },
     { href: '/customers', label: 'Customers', icon: '👥', color: '#10B981' },
@@ -19,7 +28,7 @@ const ADMIN_ITEM = { href: '/admin', label: 'Admin', icon: '⚙️', color: '#EF
 
 export default function Navbar() {
     const pathname = usePathname()
-    const { user, isAdmin, logout } = useAuth()
+    const { user, isAdmin, logout, canAccessDepartment } = useAuth()
     const [menuOpen, setMenuOpen] = useState(false)
     const portalHomeUrl = getHubUrl()
 
@@ -28,7 +37,16 @@ export default function Navbar() {
         window.location.href = '/login'
     }
 
-    const allItems = isAdmin ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS
+    const visibleItems = NAV_ITEMS.filter(item => !item.department || canAccessDepartment(item.department))
+    const allItems = isAdmin ? [...visibleItems, ADMIN_ITEM] : visibleItems
+
+    const userDepartmentLabel = user?.role === 'admin'
+        ? '👑 Admin'
+        : user?.department === 'production'
+            ? '🏭 Prod'
+            : user?.department === 'finishing'
+                ? '🔧 Fin'
+                : '🌐 All'
 
     return (
         <>
@@ -125,7 +143,7 @@ export default function Navbar() {
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-text-primary)' }}>{user.fullName}</div>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                                        {user.role === 'admin' ? '👑 Admin' : user.department === 'production' ? '🏭 Prod' : '🔧 Fin'}
+                                        {userDepartmentLabel}
                                         {' · '}{user.employeeId}
                                     </div>
                                 </div>
@@ -242,7 +260,7 @@ export default function Navbar() {
                                 <div>
                                     <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-text-primary)' }}>{user.fullName}</div>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                                        {user.role === 'admin' ? '👑 Admin' : user.department === 'production' ? '🏭 Prod' : '🔧 Fin'}
+                                        {userDepartmentLabel}
                                         {' · '}{user.employeeId}
                                     </div>
                                 </div>
